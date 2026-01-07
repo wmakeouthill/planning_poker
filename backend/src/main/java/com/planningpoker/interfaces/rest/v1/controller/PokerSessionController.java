@@ -4,6 +4,7 @@ import com.planningpoker.aplicacao.ServicoPokerSession;
 import com.planningpoker.dominio.dto.*;
 import com.planningpoker.dominio.entidade.PokerSession;
 import com.planningpoker.dominio.entidade.Vote;
+import com.planningpoker.dominio.enums.SessionStatus;
 import com.planningpoker.interfaces.rest.v1.PokerSessionAPI;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -60,8 +61,17 @@ public class PokerSessionController implements PokerSessionAPI {
 
     @Override
     public ResponseEntity<PokerSession> buscarSessaoAtiva() {
-        return servicoPokerSession.buscarSessaoAtiva()
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.noContent().build());
+        var sessionOpt = servicoPokerSession.buscarSessaoAtiva();
+        if (sessionOpt.isPresent()) {
+            var session = sessionOpt.get();
+            return ResponseEntity.ok(session);
+        }
+        // Retorna 204 No Content quando não há sessão ativa
+        return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    public ResponseEntity<PageResponseDTO<PokerSessionDTO>> listarHistorico(int page, int size, SessionStatus status) {
+        return ResponseEntity.ok(servicoPokerSession.listarHistorico(page, size, status));
     }
 }

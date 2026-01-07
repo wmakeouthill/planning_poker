@@ -22,7 +22,7 @@
     }
 
     <!-- Empty State -->
-    @if (!loading() && boards().length === 0) {
+    @if (!loading() && boards() && boards().length === 0) {
     <div class="empty-state">
         <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path
@@ -37,7 +37,7 @@
     }
 
     <!-- Board Grid -->
-    @if (!loading() && boards().length > 0) {
+    @if (!loading() && boards() && boards().length > 0) {
     <div class="board-grid">
         @for (board of boards(); track board.id) {
         <a [routerLink]="['/boards', board.id]" class="board-card card-hover">

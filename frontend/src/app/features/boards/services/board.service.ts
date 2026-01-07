@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, catchError, of } from 'rxjs';
 import { Board, CreateBoardDTO } from '../models/board.model';
 
 @Injectable({ providedIn: 'root' })
@@ -20,13 +20,29 @@ export class BoardService {
         return this.http.get<Board[]>(this.baseUrl).pipe(
             tap({
                 next: (boards) => {
-                    this.boards.set(boards);
+                    // Garantir que sempre seja um array, nunca null ou undefined
+                    this.boards.set(Array.isArray(boards) ? boards : []);
                     this.loading.set(false);
                 },
                 error: (err) => {
-                    this.error.set('Erro ao carregar boards');
+                    // Não logar erro se for erro de conexão (backend offline)
+                    if (err.status !== 0 && err.status !== 503) {
+                        this.error.set('Erro ao carregar boards');
+                    }
                     this.loading.set(false);
                 }
+            }),
+            catchError((error: any) => {
+                // Se for erro de conexão, retornar array vazio
+                if (error.status === 0 || error.status === 503) {
+                    this.boards.set([]);
+                    this.loading.set(false);
+                    return of([]);
+                }
+                // Para outros erros, também retornar array vazio para não quebrar
+                this.boards.set([]);
+                this.loading.set(false);
+                return of([]);
             })
         );
     }
@@ -67,3 +83,4 @@ export class BoardService {
         });
     }
 }
+

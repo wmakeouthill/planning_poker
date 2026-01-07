@@ -1,0 +1,20 @@
+@for (animation of activeAnimations(); track animation.id) {
+<div class="animation-container" 
+     [style.left.px]="animation.startX"
+     [style.top.px]="animation.startY">
+    @if (animation.type === 'paper-ball') {
+    <div class="paper-ball"
+         [style.--end-x]="(animation.endX - animation.startX) + 'px'"
+         [style.--end-y]="(animation.endY - animation.startY) + 'px'">
+        🗞️
+    </div>
+    } @else {
+    <div class="emoji-animation"
+         [style.--end-x]="(animation.endX - animation.startX) + 'px'"
+         [style.--end-y]="(animation.endY - animation.startY) + 'px'">
+        🎯
+    </div>
+    }
+</div>
+}
+

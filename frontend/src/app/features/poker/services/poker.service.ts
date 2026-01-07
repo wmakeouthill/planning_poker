@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap, interval, switchMap, takeWhile } from 'rxjs';
-import { PokerSession, Vote, CreateSessionDTO, VoteRequestDTO } from '../models/poker.model';
+import { Observable, tap, interval, switchMap, takeWhile, catchError, of, map } from 'rxjs';
+import { PokerSession, Vote, CreateSessionDTO, VoteRequestDTO, PageResponse } from '../models/poker.model';
 
 @Injectable({ providedIn: 'root' })
 export class PokerService {
@@ -51,9 +51,20 @@ export class PokerService {
     }
 
     buscarSessaoAtiva(): Observable<PokerSession | null> {
-        return this.http.get<PokerSession>(`${this.baseUrl}/sessions/active`).pipe(
-            tap((session) => {
-                if (session) {
+        return this.http.get<PokerSession>(`${this.baseUrl}/sessions/active`, {
+            observe: 'response',
+            // Não lançar erro para status 204
+            reportProgress: false
+        }).pipe(
+            // Mapear response para body ou null
+            map((response) => {
+                if (response.status === 204 || !response.body) {
+                    this.currentSession.set(null);
+                    return null;
+                }
+                
+                const session = response.body!;
+                if (session && session.id) {
                     // Converter para formato esperado se necessário
                     const formattedSession: PokerSession = {
                         id: session.id,
@@ -64,12 +75,22 @@ export class PokerService {
                         votes: session.votes || [],
                         averageVote: session.averageVote || null,
                         createdAt: session.createdAt,
-                        revealedAt: session.revealedAt || null
+                        revealedAt: session.revealedAt || null,
+                        createdBy: session.createdBy
                     };
                     this.currentSession.set(formattedSession);
+                    return formattedSession;
                 } else {
                     this.currentSession.set(null);
+                    return null;
                 }
+            }),
+            // Tratar erros silenciosamente (não há sessão ativa é um caso normal)
+            catchError((error: any) => {
+                // Sempre retornar null para erros - não há sessão ativa é um caso normal
+                this.currentSession.set(null);
+                // Não propagar o erro para evitar logs no console
+                return of(null);
             })
         );
     }
@@ -80,10 +101,12 @@ export class PokerService {
                 // Atualiza a sessão após votar
                 const session = this.currentSession();
                 if (session) {
+                    const hasVoted = !!(dto.value && dto.value.trim() !== '');
+                    
                     // Atualiza o voto na sessão local imediatamente
-                    const votes = session.votes.map(v => 
+                    let votes: Vote[] = session.votes.map(v => 
                         v.participantName === dto.participantName 
-                            ? { ...v, value: dto.value, hasVoted: true }
+                            ? { ...v, value: dto.value || '', hasVoted: hasVoted }
                             : v
                     );
                     
@@ -92,9 +115,9 @@ export class PokerService {
                         votes.push({
                             id: vote.id,
                             participantName: dto.participantName,
-                            value: dto.value,
+                            value: dto.value || '',
                             revealed: false,
-                            hasVoted: true
+                            hasVoted: hasVoted
                         });
                     }
                     
@@ -126,6 +149,21 @@ export class PokerService {
                 this.currentSession.set(session);
                 // Busca atualização completa
                 this.buscarSessao(sessionId).subscribe();
+            })
+        );
+    }
+
+    listarHistorico(page: number = 0, size: number = 10, status?: 'VOTING' | 'REVEALED' | 'CLOSED'): Observable<PageResponse<PokerSession>> {
+        this.loading.set(true);
+        let url = `${this.baseUrl}/sessions/history?page=${page}&size=${size}`;
+        if (status) {
+            url += `&status=${status}`;
+        }
+        
+        return this.http.get<PageResponse<PokerSession>>(url).pipe(
+            tap({
+                next: () => this.loading.set(false),
+                error: () => this.loading.set(false)
             })
         );
     }

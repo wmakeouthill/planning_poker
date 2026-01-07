@@ -32,3 +32,13 @@ export interface VoteRequestDTO {
 
 export const POKER_VALUES = ['0', '½', '1', '2', '3', '5', '8', '13', '21', '?', '☕'] as const;
 export type PokerValue = typeof POKER_VALUES[number];
+
+export interface PageResponse<T> {
+    content: T[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+}

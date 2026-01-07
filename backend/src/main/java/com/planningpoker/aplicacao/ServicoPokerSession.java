@@ -6,11 +6,16 @@ import com.planningpoker.dominio.entidade.Vote;
 import com.planningpoker.dominio.enums.SessionStatus;
 import com.planningpoker.dominio.exception.BusinessException;
 import com.planningpoker.dominio.exception.ResourceNotFoundException;
+import com.planningpoker.dominio.dto.PageResponseDTO;
 import com.planningpoker.dominio.repository.PokerSessionRepository;
 import com.planningpoker.dominio.repository.StoryRepository;
 import com.planningpoker.dominio.repository.VoteRepository;
+import com.planningpoker.interfaces.rest.v1.controller.PokerWebSocketController;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +33,7 @@ public class ServicoPokerSession {
     private final PokerSessionRepository sessionRepository;
     private final StoryRepository storyRepository;
     private final VoteRepository voteRepository;
+    private final PokerWebSocketController webSocketController;
 
     @Transactional(readOnly = true)
     public List<PokerSession> listarAtivas() {
@@ -78,14 +84,27 @@ public class ServicoPokerSession {
         Vote vote;
         if (existingVote.isPresent()) {
             vote = existingVote.get();
-            vote.setValue(dto.value());
-            log.info("Atualizando voto existente para: {}", dto.participantName());
+            // Se o valor for vazio, remove o voto (desmarca)
+            if (dto.value() == null || dto.value().trim().isEmpty()) {
+                vote.setValue(null);
+                log.info("Removendo voto para: {}", dto.participantName());
+            } else {
+                vote.setValue(dto.value());
+                log.info("Atualizando voto existente para: {}", dto.participantName());
+            }
         } else {
-            vote = new Vote(dto.participantName(), dto.value());
+            // Se o valor for vazio na primeira vez, cria voto vazio (participante entra na mesa)
+            vote = new Vote(dto.participantName(), dto.value() != null && !dto.value().trim().isEmpty() ? dto.value() : null);
             session.addVote(vote);
+            log.info("Criando voto para: {}", dto.participantName());
         }
 
-        return voteRepository.save(vote);
+        var savedVote = voteRepository.save(vote);
+        
+        // Notificar via WebSocket
+        webSocketController.notificarAtualizacaoSessao(dto.sessionId(), "VOTE");
+        
+        return savedVote;
     }
 
     @Transactional
@@ -100,7 +119,12 @@ public class ServicoPokerSession {
         }
 
         session.revealVotes();
-        return sessionRepository.save(session);
+        var savedSession = sessionRepository.save(session);
+        
+        // Notificar via WebSocket
+        webSocketController.notificarAtualizacaoSessao(sessionId, "REVEAL");
+        
+        return savedSession;
     }
 
     @Transactional
@@ -112,8 +136,13 @@ public class ServicoPokerSession {
 
         session.resetVotes();
         voteRepository.deleteBySessionId(sessionId);
-
-        return sessionRepository.save(session);
+        
+        var savedSession = sessionRepository.save(session);
+        
+        // Notificar via WebSocket
+        webSocketController.notificarAtualizacaoSessao(sessionId, "RESET");
+        
+        return savedSession;
     }
 
     @Transactional
@@ -130,6 +159,29 @@ public class ServicoPokerSession {
     @Transactional(readOnly = true)
     public Optional<PokerSession> buscarSessaoAtiva() {
         return sessionRepository.findFirstByStatusOrderByCreatedAtDesc(SessionStatus.VOTING);
+    }
+
+    /**
+     * Lista histórico de sessões com paginação.
+     */
+    @Transactional(readOnly = true)
+    public PageResponseDTO<PokerSessionDTO> listarHistorico(int page, int size, SessionStatus status) {
+        log.debug("Listando histórico de sessões - página: {}, tamanho: {}, status: {}", page, size, status);
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<PokerSession> sessionsPage;
+        
+        if (status != null) {
+            sessionsPage = sessionRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
+        } else {
+            sessionsPage = sessionRepository.findAllByOrderByCreatedAtDesc(pageable);
+        }
+        
+        List<PokerSessionDTO> dtos = sessionsPage.getContent().stream()
+                .map(session -> toDTO(session, null))
+                .toList();
+        
+        return PageResponseDTO.of(dtos, page, size, sessionsPage.getTotalElements());
     }
 
     private PokerSessionDTO toDTO(PokerSession session, String participantName) {

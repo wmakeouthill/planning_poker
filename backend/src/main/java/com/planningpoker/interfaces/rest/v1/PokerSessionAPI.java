@@ -3,6 +3,7 @@ package com.planningpoker.interfaces.rest.v1;
 import com.planningpoker.dominio.dto.*;
 import com.planningpoker.dominio.entidade.PokerSession;
 import com.planningpoker.dominio.entidade.Vote;
+import com.planningpoker.dominio.enums.SessionStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -70,4 +71,12 @@ public interface PokerSessionAPI {
     @ApiResponse(responseCode = "200", description = "Sessão ativa encontrada")
     @GetMapping("/sessions/active")
     ResponseEntity<PokerSession> buscarSessaoAtiva();
+
+    @Operation(summary = "Lista histórico de sessões com paginação")
+    @ApiResponse(responseCode = "200", description = "Histórico de sessões retornado com sucesso")
+    @GetMapping("/sessions/history")
+    ResponseEntity<PageResponseDTO<PokerSessionDTO>> listarHistorico(
+            @Parameter(description = "Número da página (0-indexed)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Tamanho da página") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Filtro por status (opcional)") @RequestParam(required = false) SessionStatus status);
 }

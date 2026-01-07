@@ -1,10 +1,12 @@
 import { Component, inject, OnInit, OnDestroy, signal, computed, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { PokerService } from '../../services/poker.service';
+import { PokerWebSocketService } from '../../services/poker-websocket.service';
 import { POKER_VALUES, PokerValue } from '../../models/poker.model';
 import { ParticipantCardComponent } from '../../components/participant-card/participant-card.component';
 import { MasterPanelComponent } from '../../components/master-panel/master-panel.component';
 import { TableCenterComponent } from '../../components/table-center/table-center.component';
+import { VoteAnimationComponent } from '../../components/vote-animation/vote-animation.component';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -14,13 +16,15 @@ import { Subscription } from 'rxjs';
         FormsModule,
         ParticipantCardComponent,
         MasterPanelComponent,
-        TableCenterComponent
+        TableCenterComponent,
+        VoteAnimationComponent
     ],
     templateUrl: './poker-room.component.html',
     styleUrl: './poker-room.component.css'
 })
 export class PokerRoomComponent implements OnInit, OnDestroy {
     private readonly pokerService = inject(PokerService);
+    private readonly wsService = inject(PokerWebSocketService);
     private pollingSubscription?: Subscription;
 
     readonly POKER_VALUES = POKER_VALUES;
@@ -106,8 +110,31 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
             this.pokerService.buscarSessaoAtiva().subscribe({
                 next: (session) => {
                     if (session) {
-                        this.startPolling(session.id);
+                        const name = this.participantName();
+                        // Verificar se o participante já está na sessão
+                        const isInSession = session.votes.some(v => v.participantName === name);
+                        if (!isInSession && name) {
+                            // Criar voto vazio para o participante aparecer na mesa
+                            this.pokerService.votar({
+                                sessionId: session.id,
+                                participantName: name,
+                                value: ''
+                            }).subscribe({
+                                next: () => {
+                                    this.startPolling(session.id);
+                                },
+                                error: () => {
+                                    // Se falhar ao votar, ainda tenta iniciar polling
+                                    this.startPolling(session.id);
+                                }
+                            });
+                        } else {
+                            this.startPolling(session.id);
+                        }
                     }
+                },
+                error: () => {
+                    // Erro silencioso - não há sessão ativa é um caso normal
                 }
             });
         }
@@ -126,7 +153,16 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         this.pokerService.buscarSessaoAtiva().subscribe({
             next: (session) => {
                 if (session) {
-                    this.startPolling(session.id);
+                    // Criar voto vazio para o participante aparecer na mesa
+                    this.pokerService.votar({
+                        sessionId: session.id,
+                        participantName: name,
+                        value: ''
+                    }).subscribe({
+                        next: () => {
+                            this.startPolling(session.id);
+                        }
+                    });
                 }
             }
         });
@@ -162,18 +198,60 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         const session = this.session();
         if (!session || session.status !== 'VOTING') return;
 
-        this.selectedCard.set(value);
+        const myVote = this.myVote();
+        const isSameCard = myVote?.value === value;
 
-        this.pokerService.votar({
-            sessionId: session.id,
-            participantName: this.participantName()!,
-            value
-        }).subscribe({
-            next: () => {
-                // Atualizar sessão após votar
-                this.pokerService.buscarSessao(session.id).subscribe();
-            }
-        });
+        // Se clicou no mesmo card, desmarca (remove o voto)
+        if (isSameCard) {
+            this.selectedCard.set(null);
+            // Enviar valor vazio para remover o voto
+            this.pokerService.votar({
+                sessionId: session.id,
+                participantName: this.participantName()!,
+                value: ''
+            }).subscribe({
+                next: () => {
+                    this.pokerService.buscarSessao(session.id).subscribe();
+                }
+            });
+        } else {
+            // Seleciona novo card
+            this.selectedCard.set(value);
+            this.pokerService.votar({
+                sessionId: session.id,
+                participantName: this.participantName()!,
+                value
+            }).subscribe({
+                next: () => {
+                    // Disparar animação de bola de papel
+                    this.triggerPaperBallAnimation();
+                    this.pokerService.buscarSessao(session.id).subscribe();
+                }
+            });
+        }
+    }
+
+    /**
+     * Dispara animação de bola de papel quando alguém vota.
+     */
+    private triggerPaperBallAnimation(): void {
+        // Posição aleatória de origem (lados da tela)
+        const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+        const startX = side === 3 ? 0 : side === 1 ? window.innerWidth : Math.random() * window.innerWidth;
+        const startY = side === 0 ? 0 : side === 2 ? window.innerHeight : Math.random() * window.innerHeight;
+        
+        // Posição do card do participante (centro da tela como aproximação)
+        const endX = window.innerWidth / 2;
+        const endY = window.innerHeight / 2;
+        
+        this.wsService.sendAnimation(
+            'paper-ball',
+            this.participantName()!,
+            startX,
+            startY,
+            endX,
+            endY
+        );
     }
 
     revealVotes() {
@@ -218,9 +296,9 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
     }
 
     getCardPosition(index: number, total: number): { top: string; left: string; rotation: string } {
-        // Posicionar participantes em círculo ao redor da mesa
-        // Ajustar raio baseado no número de participantes
-        const baseRadius = total <= 4 ? 35 : total <= 6 ? 40 : 45;
+        // Posicionar participantes em círculo AO REDOR da mesa (não dentro)
+        // Raio maior para ficar ao redor da mesa
+        const baseRadius = total <= 4 ? 48 : total <= 6 ? 52 : 55;
         const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
         const radiusX = baseRadius; // % do container
         const radiusY = baseRadius * 0.85; // Ajuste para formato elíptico

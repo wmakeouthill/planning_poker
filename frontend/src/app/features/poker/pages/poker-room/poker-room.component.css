@@ -129,6 +129,7 @@
     padding: 1rem;
     min-height: 0;
     overflow: visible;
+    position: relative;
 }
 
 /* Estilos movidos para componentes específicos */

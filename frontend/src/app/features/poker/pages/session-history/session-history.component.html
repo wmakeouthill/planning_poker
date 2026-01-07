@@ -1,0 +1,125 @@
+<div class="session-history-page fade-in">
+    <header class="page-header">
+        <h1 class="page-title">Histórico de Sessões</h1>
+        <p class="page-subtitle">Visualize todas as sessões de poker planning</p>
+    </header>
+
+    <!-- Filtros -->
+    <div class="filters">
+        <button 
+            class="filter-btn" 
+            [class.active]="selectedStatus() === null"
+            (click)="filtrarPorStatus(null)">
+            Todas
+        </button>
+        <button 
+            class="filter-btn" 
+            [class.active]="selectedStatus() === 'VOTING'"
+            (click)="filtrarPorStatus('VOTING')">
+            Em Votação
+        </button>
+        <button 
+            class="filter-btn" 
+            [class.active]="selectedStatus() === 'REVEALED'"
+            (click)="filtrarPorStatus('REVEALED')">
+            Reveladas
+        </button>
+        <button 
+            class="filter-btn" 
+            [class.active]="selectedStatus() === 'CLOSED'"
+            (click)="filtrarPorStatus('CLOSED')">
+            Fechadas
+        </button>
+    </div>
+
+    <!-- Lista de Sessões -->
+    @if (loading()) {
+    <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Carregando histórico...</p>
+    </div>
+    } @else if (sessions().length === 0) {
+    <div class="empty-state">
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <h3>Nenhuma sessão encontrada</h3>
+        <p>Não há sessões no histórico com os filtros selecionados.</p>
+    </div>
+    } @else {
+    <div class="sessions-list">
+        @for (session of sessions(); track session.id) {
+        <div class="session-card" (click)="abrirSessao(session.id)">
+            <div class="session-header">
+                <h3 class="session-name">{{ session.name }}</h3>
+                <span class="session-status" [class]="getStatusClass(session.status)">
+                    {{ getStatusLabel(session.status) }}
+                </span>
+            </div>
+            
+            <div class="session-info">
+                <div class="info-item">
+                    <span class="info-label">Criada em:</span>
+                    <span class="info-value">{{ formatarData(session.createdAt) }}</span>
+                </div>
+                
+                @if (session.revealedAt) {
+                <div class="info-item">
+                    <span class="info-label">Revelada em:</span>
+                    <span class="info-value">{{ formatarData(session.revealedAt) }}</span>
+                </div>
+                }
+                
+                <div class="info-item">
+                    <span class="info-label">Participantes:</span>
+                    <span class="info-value">{{ session.votes.length || 0 }}</span>
+                </div>
+                
+                @if (session.averageVote) {
+                <div class="info-item">
+                    <span class="info-label">Média:</span>
+                    <span class="info-value highlight">{{ session.averageVote.toFixed(1) }}</span>
+                </div>
+                }
+            </div>
+        </div>
+        }
+    </div>
+
+    <!-- Paginação -->
+    @if (totalPages() > 1) {
+    <div class="pagination">
+        <button 
+            class="pagination-btn" 
+            [disabled]="!hasPrevious()"
+            (click)="paginaAnterior()">
+            ← Anterior
+        </button>
+        
+        <div class="page-numbers">
+            @for (page of [].constructor(totalPages()); track $index) {
+            <button 
+                class="page-number" 
+                [class.active]="$index === currentPage()"
+                (click)="irParaPagina($index)">
+                {{ $index + 1 }}
+            </button>
+            }
+        </div>
+        
+        <button 
+            class="pagination-btn" 
+            [disabled]="!hasNext()"
+            (click)="proximaPagina()">
+            Próxima →
+        </button>
+    </div>
+    
+    <div class="pagination-info">
+        Página {{ currentPage() + 1 }} de {{ totalPages() }} 
+        ({{ totalElements() }} sessões no total)
+    </div>
+    }
+    }
+</div>
+

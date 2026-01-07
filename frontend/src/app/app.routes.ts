@@ -47,6 +47,12 @@ export const routes: Routes = [
             .then(m => m.PokerRoomComponent)
     },
     {
+        path: 'poker/history',
+        canActivate: [authGuard],
+        loadComponent: () => import('./features/poker/pages/session-history/session-history.component')
+            .then(m => m.SessionHistoryComponent)
+    },
+    {
         path: '**',
         redirectTo: 'boards'
     }
