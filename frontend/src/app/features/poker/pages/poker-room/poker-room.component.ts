@@ -1,13 +1,21 @@
 import { Component, inject, OnInit, OnDestroy, signal, computed, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { PokerService } from '../../services/poker.service';
-import { POKER_VALUES, PokerValue, PokerSession } from '../../models/poker.model';
+import { POKER_VALUES, PokerValue } from '../../models/poker.model';
+import { ParticipantCardComponent } from '../../components/participant-card/participant-card.component';
+import { MasterPanelComponent } from '../../components/master-panel/master-panel.component';
+import { TableCenterComponent } from '../../components/table-center/table-center.component';
 import { Subscription } from 'rxjs';
 
 @Component({
     selector: 'app-poker-room',
     standalone: true,
-    imports: [FormsModule],
+    imports: [
+        FormsModule,
+        ParticipantCardComponent,
+        MasterPanelComponent,
+        TableCenterComponent
+    ],
     templateUrl: './poker-room.component.html',
     styleUrl: './poker-room.component.css'
 })
@@ -51,6 +59,22 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         const name = this.participantName();
         if (!session || !name) return null;
         return session.votes.find(v => v.participantName === name);
+    });
+
+    // Verifica se o usuário atual é o mestre (criador da sessão)
+    readonly isMaster = computed(() => {
+        const session = this.session();
+        const name = this.participantName();
+        if (!session || !name) return false;
+        // Se não tem createdBy, considera o primeiro participante como mestre
+        return session.createdBy === name || (!session.createdBy && session.votes.length > 0 && session.votes[0].participantName === name);
+    });
+
+    // Votos revelados para o painel do mestre
+    readonly revealedVotes = computed(() => {
+        const session = this.session();
+        if (!session || session.status !== 'REVEALED') return [];
+        return session.votes.filter(v => v.revealed && v.value);
     });
 
     constructor() {
@@ -119,9 +143,15 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
 
     createSession() {
         const name = this.newSessionName().trim() || 'Nova Sessão';
+        const participantName = this.participantName();
 
         this.pokerService.criarSessao({ name }).subscribe({
             next: (session) => {
+                // Marcar o criador da sessão
+                if (session && participantName) {
+                    session.createdBy = participantName;
+                    this.pokerService.currentSession.set(session);
+                }
                 this.closeCreateModal();
                 this.startPolling(session.id);
             }

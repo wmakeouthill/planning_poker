@@ -71,6 +71,15 @@
     overflow: hidden;
 }
 
+/* Main Layout with Sidebar */
+.poker-main-layout {
+    flex: 1;
+    display: flex;
+    gap: 1rem;
+    min-height: 0;
+    overflow: hidden;
+}
+
 /* Empty State */
 .empty-state {
     flex: 1;
@@ -122,6 +131,8 @@
     overflow: visible;
 }
 
+/* Estilos movidos para componentes específicos */
+
 .poker-table {
     position: relative;
     width: 100%;
@@ -137,130 +148,9 @@
         0 0 0 4px #5a4a0a;
 }
 
-.table-center {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-}
+/* Estilos movidos para componentes específicos */
 
-.voting-status {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.vote-count {
-    font-size: 3rem;
-    font-weight: 700;
-    color: white;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-}
-
-.vote-label {
-    font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.7);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-}
-
-.result-display {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.result-label {
-    font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.7);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 0.5rem;
-}
-
-.result-value {
-    font-size: 4rem;
-    font-weight: 700;
-    color: #fbbf24;
-    text-shadow: 0 2px 20px rgba(251, 191, 36, 0.5);
-}
-
-/* Participant Cards */
-.participant-card {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.participant-vote {
-    width: 60px;
-    height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border: 2px solid #475569;
-    border-radius: 8px;
-    color: #64748b;
-    font-size: 1.5rem;
-    transition: all 0.3s ease;
-}
-
-.participant-card.voted .participant-vote {
-    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-    border-color: #a78bfa;
-    color: white;
-}
-
-.participant-card.voted .participant-vote svg {
-    width: 24px;
-    height: 24px;
-}
-
-.participant-card.revealed .participant-vote {
-    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
-    border-color: #e2e8f0;
-    color: #1e293b;
-    animation: cardFlip 0.5s ease-out;
-}
-
-@keyframes cardFlip {
-    0% {
-        transform: rotateY(0deg);
-    }
-
-    50% {
-        transform: rotateY(90deg);
-    }
-
-    100% {
-        transform: rotateY(0deg);
-    }
-}
-
-.vote-value {
-    font-weight: 700;
-}
-
-.waiting {
-    opacity: 0.5;
-}
-
-.participant-name {
-    font-size: 0.75rem;
-    color: white;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    white-space: nowrap;
-    max-width: 100px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+/* Estilos movidos para componentes específicos */
 
 /* Controls */
 .controls {
@@ -478,25 +368,6 @@
     .poker-table {
         max-width: 90%;
     }
-
-    .participant-vote {
-        width: 55px;
-        height: 75px;
-        font-size: 1.25rem;
-    }
-
-    .participant-name {
-        font-size: 0.7rem;
-        max-width: 90px;
-    }
-
-    .vote-count {
-        font-size: 2.5rem;
-    }
-
-    .result-value {
-        font-size: 3rem;
-    }
 }
 
 /* Responsividade - Mobile */
@@ -542,34 +413,6 @@
         max-width: 100%;
         max-height: 100%;
         border-width: 8px;
-    }
-
-    .participant-vote {
-        width: 45px;
-        height: 60px;
-        font-size: 1rem;
-    }
-
-    .participant-name {
-        font-size: 0.65rem;
-        padding: 0.2rem 0.5rem;
-        max-width: 80px;
-    }
-
-    .vote-count {
-        font-size: 2rem;
-    }
-
-    .vote-label {
-        font-size: 0.75rem;
-    }
-
-    .result-value {
-        font-size: 2.5rem;
-    }
-
-    .result-label {
-        font-size: 0.75rem;
     }
 
     .controls {
@@ -624,25 +467,6 @@
 
     .poker-table {
         border-width: 6px;
-    }
-
-    .participant-vote {
-        width: 40px;
-        height: 55px;
-        font-size: 0.875rem;
-    }
-
-    .participant-name {
-        font-size: 0.6rem;
-        max-width: 70px;
-    }
-
-    .vote-count {
-        font-size: 1.75rem;
-    }
-
-    .result-value {
-        font-size: 2rem;
     }
 
     .voting-card {
@@ -719,5 +543,9 @@
 
     .card-value {
         font-size: 0.875rem;
+    }
+
+    .poker-main-layout {
+        flex-direction: column;
     }
 }

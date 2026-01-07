@@ -8,6 +8,7 @@ export interface PokerSession {
     averageVote: number | null;
     createdAt: string;
     revealedAt: string | null;
+    createdBy?: string; // Nome do criador/mestre da sessão
 }
 
 export interface Vote {

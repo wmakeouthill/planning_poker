@@ -1,0 +1,14 @@
+<div class="table-center">
+    @if (status === 'VOTING') {
+    <div class="voting-status">
+        <span class="vote-count">{{ votedCount }}/{{ totalParticipants }}</span>
+        <span class="vote-label">votaram</span>
+    </div>
+    } @else if (status === 'REVEALED') {
+    <div class="result-display">
+        <span class="result-label">Média</span>
+        <span class="result-value">{{ averageVote?.toFixed(1) || '-' }}</span>
+    </div>
+    }
+</div>
+

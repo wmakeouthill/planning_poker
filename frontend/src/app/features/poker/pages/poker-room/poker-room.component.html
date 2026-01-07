@@ -58,46 +58,36 @@
             </button>
         </div>
         } @else {
-        <!-- Poker Table -->
-        <div class="poker-table-container">
-            <div class="poker-table">
-                <!-- Center info -->
-                <div class="table-center">
-                    @if (session()!.status === 'VOTING') {
-                    <div class="voting-status">
-                        <span class="vote-count">{{ votedCount() }}/{{ totalParticipants() }}</span>
-                        <span class="vote-label">votaram</span>
-                    </div>
-                    } @else if (session()!.status === 'REVEALED') {
-                    <div class="result-display">
-                        <span class="result-label">Média</span>
-                        <span class="result-value">{{ session()!.averageVote?.toFixed(1) || '-' }}</span>
-                    </div>
+        <!-- Main Content with Sidebar -->
+        <div class="poker-main-layout">
+            <!-- Poker Table -->
+            <div class="poker-table-container">
+                <div class="poker-table">
+                    <!-- Center info -->
+                    <app-table-center 
+                        [status]="session()!.status"
+                        [votedCount]="votedCount()"
+                        [totalParticipants]="totalParticipants()"
+                        [averageVote]="session()!.averageVote" />
+
+                    <!-- Participants around the table with flip cards -->
+                    @for (vote of session()!.votes; track vote.id; let i = $index) {
+                    @let pos = getCardPosition(i, session()!.votes.length);
+                    <app-participant-card 
+                        [vote]="vote"
+                        [participantName]="participantName()!"
+                        [top]="pos.top"
+                        [left]="pos.left" />
                     }
                 </div>
-
-                <!-- Participants around the table -->
-                @for (vote of session()!.votes; track vote.id; let i = $index) {
-                @let pos = getCardPosition(i, session()!.votes.length);
-                @let isMyVote = vote.participantName === participantName();
-                @let canSeeValue = vote.revealed || isMyVote;
-                <div class="participant-card" [style.top]="pos.top" [style.left]="pos.left"
-                    [class.voted]="vote.hasVoted" [class.revealed]="vote.revealed">
-                    <div class="participant-vote">
-                        @if (canSeeValue && vote.value) {
-                        <span class="vote-value">{{ vote.value }}</span>
-                        } @else if (vote.hasVoted) {
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M5 13l4 4L19 7" />
-                        </svg>
-                        } @else {
-                        <span class="waiting">?</span>
-                        }
-                    </div>
-                    <span class="participant-name">{{ vote.participantName }}</span>
-                </div>
-                }
             </div>
+
+            <!-- Master Panel (Right Sidebar) -->
+            @if (isMaster() && session()!.status === 'REVEALED') {
+            <app-master-panel 
+                [votes]="revealedVotes()"
+                [averageVote]="session()!.averageVote" />
+            }
         </div>
 
         <!-- Controls -->

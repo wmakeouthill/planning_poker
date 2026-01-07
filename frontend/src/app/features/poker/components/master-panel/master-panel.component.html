@@ -1,0 +1,28 @@
+<aside class="master-panel">
+    <div class="master-panel-header">
+        <h3>Votos Revelados</h3>
+        <span class="master-badge">Mestre</span>
+    </div>
+    <div class="master-panel-content">
+        <div class="votes-summary">
+            <div class="summary-item">
+                <span class="summary-label">Total de Votos</span>
+                <span class="summary-value">{{ sortedVotes.length }}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Média</span>
+                <span class="summary-value">{{ averageVote?.toFixed(1) || '-' }}</span>
+            </div>
+        </div>
+        <div class="votes-list">
+            <h4>Detalhamento</h4>
+            @for (vote of sortedVotes; track vote.id) {
+            <div class="vote-item">
+                <span class="vote-participant">{{ vote.participantName }}</span>
+                <span class="vote-number">{{ vote.value }}</span>
+            </div>
+            }
+        </div>
+    </div>
+</aside>
+
