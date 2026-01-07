@@ -2,6 +2,7 @@ import { Injectable, inject, signal, computed, NgZone } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { getApiUrl } from '../../../core/utils/api-url';
 
 declare const google: any;
 
@@ -23,7 +24,10 @@ export interface AuthResponse {
 export class AuthService {
     private readonly http = inject(HttpClient);
     private readonly ngZone = inject(NgZone);
-    private readonly baseUrl = `${environment.apiUrl}/v1/auth`;
+    
+    private get baseUrl(): string {
+        return `${getApiUrl()}/v1/auth`;
+    }
 
     // State
     readonly currentUser = signal<Usuario | null>(null);

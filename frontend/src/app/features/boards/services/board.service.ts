@@ -2,11 +2,15 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap, catchError, of, map } from 'rxjs';
 import { Board, CreateBoardDTO } from '../models/board.model';
+import { getApiUrl } from '../../../core/utils/api-url';
 
 @Injectable({ providedIn: 'root' })
 export class BoardService {
     private readonly http = inject(HttpClient);
-    private readonly baseUrl = 'http://localhost:8080/api/v1/boards';
+    
+    private get baseUrl(): string {
+        return `${getApiUrl()}/v1/boards`;
+    }
 
     // State usando Signals
     readonly boards = signal<Board[]>([]);

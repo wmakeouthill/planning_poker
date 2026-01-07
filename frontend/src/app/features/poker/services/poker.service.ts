@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap, interval, switchMap, takeWhile, catchError, of, map } from 'rxjs';
 import { PokerSession, Vote, CreateSessionDTO, VoteRequestDTO, PageResponse } from '../models/poker.model';
+import { getApiUrl } from '../../../core/utils/api-url';
 
 export interface JoinSessionResponseDTO {
     sessionId: number;
@@ -10,7 +11,10 @@ export interface JoinSessionResponseDTO {
 @Injectable({ providedIn: 'root' })
 export class PokerService {
     private readonly http = inject(HttpClient);
-    private readonly baseUrl = 'http://localhost:8080/api/v1/poker';
+    
+    private get baseUrl(): string {
+        return `${getApiUrl()}/v1/poker`;
+    }
 
     // State usando Signals
     readonly currentSession = signal<PokerSession | null>(null);
