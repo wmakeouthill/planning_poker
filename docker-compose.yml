@@ -17,9 +17,13 @@ services:
       - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - JAVA_HOME=/opt/java/openjdk
     volumes:
       - ./backend:/app
       - maven-cache:/root/.m2
+      # Excluir target do volume para evitar conflitos de versão Java
+      # Usar volume anônimo para sobrescrever apenas o diretório target
+      - /app/target
     depends_on:
       mysql:
         condition: service_healthy

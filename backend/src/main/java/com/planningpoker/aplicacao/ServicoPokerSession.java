@@ -49,13 +49,18 @@ public class ServicoPokerSession {
         return sessionRepository.findAtivasPorUsuario(usuario.getId(), SessionStatus.VOTING);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PokerSessionDTO buscarPorId(Long id, String participantName) {
         var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
         log.debug("Buscando sessão por id: {} para usuário {}", id, usuario.getId());
 
+        // Verificar se o usuário já é participante, se não for, criar automaticamente
         if (!participantRepository.existsBySessionIdAndUsuarioId(id, usuario.getId())) {
-            throw new ForbiddenException("Você não participa desta sessão. Use o link de convite para entrar.");
+            var session = sessionRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("PokerSession", id));
+            // Criar participante automaticamente quando alguém tenta acessar a sessão
+            participantRepository.save(new PokerSessionParticipant(session, usuario));
+            log.info("Participante criado automaticamente para sessão {} e usuário {}", id, usuario.getId());
         }
 
         var session = sessionRepository.findByIdWithVotes(id)
@@ -92,12 +97,15 @@ public class ServicoPokerSession {
         var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
         log.info("Registrando voto (userId={}): {} -> {}", usuario.getId(), dto.participantName(), dto.value());
 
-        if (!participantRepository.existsBySessionIdAndUsuarioId(dto.sessionId(), usuario.getId())) {
-            throw new ForbiddenException("Você não participa desta sessão. Use o link de convite para entrar.");
-        }
-
         var session = sessionRepository.findById(dto.sessionId())
                 .orElseThrow(() -> new ResourceNotFoundException("PokerSession", dto.sessionId()));
+
+        // Verificar se o usuário já é participante, se não for, criar automaticamente
+        if (!participantRepository.existsBySessionIdAndUsuarioId(dto.sessionId(), usuario.getId())) {
+            // Criar participante automaticamente quando alguém vota pela primeira vez
+            participantRepository.save(new PokerSessionParticipant(session, usuario));
+            log.info("Participante criado automaticamente para sessão {} e usuário {} ao votar", dto.sessionId(), usuario.getId());
+        }
 
         if (!session.isVotingOpen()) {
             throw new BusinessException("A sessão não está aberta para votação");

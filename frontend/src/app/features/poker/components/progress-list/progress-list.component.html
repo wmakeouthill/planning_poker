@@ -1,0 +1,42 @@
+<div class="progress-list">
+    <div class="progress-header">
+        <h3 class="progress-title">Participantes</h3>
+        <div class="progress-stats">
+            <span class="stats-text">{{ votedCount() }}/{{ totalParticipants() }}</span>
+            <span class="stats-percentage">({{ progressPercentage() }}%)</span>
+        </div>
+    </div>
+
+    <div class="progress-bar-container">
+        <div class="progress-bar" [style.width.%]="progressPercentage()"></div>
+    </div>
+
+    <div class="participants-list">
+        @for (vote of votes; track vote.id) {
+        <div class="participant-item" 
+             [class.voted]="vote.hasVoted"
+             [class.revealed]="vote.revealed && status === 'REVEALED'">
+            <div class="participant-info">
+                <div class="participant-avatar">
+                    @if (vote.hasVoted && status === 'REVEALED' && vote.revealed) {
+                    <span class="avatar-value">{{ vote.value || '?' }}</span>
+                    } @else if (vote.hasVoted) {
+                    <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M5 13l4 4L19 7" />
+                    </svg>
+                    } @else {
+                    <span class="waiting-icon">?</span>
+                    }
+                </div>
+                <span class="participant-name-text">{{ vote.participantName }}</span>
+            </div>
+            @if (status === 'REVEALED' && vote.revealed && vote.value) {
+            <div class="vote-display">
+                <span class="vote-display-value">{{ vote.value }}</span>
+            </div>
+            }
+        </div>
+        }
+    </div>
+</div>
+

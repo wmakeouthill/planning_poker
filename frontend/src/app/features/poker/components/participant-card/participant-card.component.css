@@ -5,12 +5,18 @@
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.participant-card .card-flip-container {
+    pointer-events: auto;
 }
 
 .card-flip-container {
     perspective: 1000px;
-    width: 70px;
-    height: 100px;
+    width: 80px;
+    height: 112px;
 }
 
 .card-flip-inner {
@@ -41,10 +47,14 @@
 /* Card Back (Face Down) - Visual de Carta de Baralho */
 .card-back {
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border: 3px solid #475569;
+    border: 2px solid #475569;
     transform: rotateY(0deg);
     position: relative;
     overflow: hidden;
+    box-shadow: 
+        0 6px 12px rgba(0, 0, 0, 0.4),
+        0 3px 6px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .card-back::before {
@@ -100,8 +110,22 @@
     background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
     border-color: #a78bfa;
     box-shadow: 
-        0 4px 12px rgba(139, 92, 246, 0.4),
-        0 2px 4px rgba(0, 0, 0, 0.3);
+        0 6px 16px rgba(139, 92, 246, 0.5),
+        0 3px 8px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    animation: cardVoted 0.5s ease;
+}
+
+@keyframes cardVoted {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 .participant-card.voted .card-back::before {
@@ -140,7 +164,7 @@
 /* Card Front (Face Up) - Visual de Carta de Baralho Revelada */
 .card-front {
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border: 3px solid #e2e8f0;
+    border: 2px solid #e2e8f0;
     color: #1e293b;
     transform: rotateY(180deg);
     display: flex;
@@ -149,6 +173,10 @@
     padding: 8px;
     position: relative;
     overflow: hidden;
+    box-shadow: 
+        0 6px 12px rgba(0, 0, 0, 0.3),
+        0 3px 6px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .card-front::before {
@@ -168,9 +196,10 @@
     background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
     border-color: #fbbf24;
     box-shadow: 
-        0 8px 24px rgba(251, 191, 36, 0.5),
-        0 4px 12px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        0 8px 24px rgba(251, 191, 36, 0.6),
+        0 4px 12px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        0 0 20px rgba(251, 191, 36, 0.3);
     animation: cardReveal 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 

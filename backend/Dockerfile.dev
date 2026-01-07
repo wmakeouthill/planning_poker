@@ -2,8 +2,15 @@ FROM eclipse-temurin:21-jdk
 
 WORKDIR /app
 
+# Configurar JAVA_HOME explicitamente
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
 # Instalar Maven
 RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/*
+
+# Verificar versões do Java e Maven
+RUN java -version && mvn -version
 
 # Copiar pom.xml para cache de dependências
 COPY pom.xml .
@@ -14,5 +21,5 @@ RUN mvn dependency:go-offline -B
 # Expor portas
 EXPOSE 8080 5005
 
-# Comando padrão
+# Comando padrão - compilar e executar com Java 21
 CMD ["mvn", "spring-boot:run"]

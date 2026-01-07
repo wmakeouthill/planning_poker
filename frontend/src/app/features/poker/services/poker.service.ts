@@ -24,9 +24,11 @@ export class PokerService {
         return this.http.post<PokerSession>(`${this.baseUrl}/sessions`, dto).pipe(
             tap({
                 next: (session) => {
+                    // Garantir que votes sempre seja um array
+                    const votes = session.votes || [];
                     this.currentSession.set({
                         ...session,
-                        votes: [],
+                        votes: votes,
                         averageVote: null
                     } as PokerSession);
                     this.loading.set(false);
@@ -53,6 +55,10 @@ export class PokerService {
 
         return this.http.get<PokerSession>(`${this.baseUrl}/sessions/${id}`, options).pipe(
             tap((session) => {
+                // Garantir que votes sempre seja um array
+                if (!session.votes) {
+                    session.votes = [];
+                }
                 this.currentSession.set(session);
             })
         );
@@ -73,6 +79,8 @@ export class PokerService {
                 
                 const session = response.body!;
                 if (session && session.id) {
+                    // Garantir que votes sempre seja um array
+                    const votes = session.votes || [];
                     // Converter para formato esperado se necessário
                     const formattedSession: PokerSession = {
                         id: session.id,
@@ -81,7 +89,7 @@ export class PokerService {
                         storyId: session.storyId || null,
                         storyTitle: session.storyTitle || null,
                         inviteCode: session.inviteCode || null,
-                        votes: session.votes || [],
+                        votes: votes,
                         averageVote: session.averageVote || null,
                         createdAt: session.createdAt,
                         revealedAt: session.revealedAt || null,

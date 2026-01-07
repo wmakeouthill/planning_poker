@@ -9,6 +9,7 @@ import { MasterPanelComponent } from '../../components/master-panel/master-panel
 import { TableCenterComponent } from '../../components/table-center/table-center.component';
 import { VoteAnimationComponent } from '../../components/vote-animation/vote-animation.component';
 import { InviteLinkComponent } from '../../components/invite-link/invite-link.component';
+import { ProgressListComponent } from '../../components/progress-list/progress-list.component';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -20,7 +21,8 @@ import { Subscription } from 'rxjs';
         MasterPanelComponent,
         TableCenterComponent,
         VoteAnimationComponent,
-        InviteLinkComponent
+        InviteLinkComponent,
+        ProgressListComponent
     ],
     templateUrl: './poker-room.component.html',
     styleUrl: './poker-room.component.css'
@@ -61,12 +63,28 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
     readonly votedCount = computed(() => {
         const session = this.session();
         if (!session) return 0;
-        return session.votes.filter(v => v.hasVoted).length;
+        const votes = session.votes || [];
+        // Contar apenas votos que foram realmente dados (hasVoted = true e value não está vazio)
+        const count = votes.filter(v => v.hasVoted && v.value && v.value.trim() !== '').length;
+        return count;
     });
 
     readonly totalParticipants = computed(() => {
         const session = this.session();
-        return session?.votes.length || 0;
+        if (!session) return 0;
+        const votes = session.votes || [];
+        // Contar todos os participantes que entraram na sessão (têm um voto registrado)
+        // Um participante entra quando cria um voto (mesmo que vazio)
+        return votes.length;
+    });
+
+    // Computed para verificar se há participantes
+    readonly hasParticipants = computed(() => {
+        const session = this.session();
+        if (!session) return false;
+        // Verificar se há votos e se o array não está vazio
+        const hasVotes = session.votes && Array.isArray(session.votes) && session.votes.length > 0;
+        return hasVotes;
     });
 
     readonly myVote = computed(() => {
@@ -139,7 +157,9 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                 // A sessão já foi atualizada no serviço, então o inviteUrl já deve estar disponível
                 const name = this.participantName();
                 // Verificar se o participante já está na sessão
-                const isInSession = session.votes.some(v => v.participantName === name);
+                // Garantir que votes existe e é um array
+                const votes = session.votes || [];
+                const isInSession = votes.some(v => v.participantName === name);
                 if (!isInSession && name) {
                     // Criar voto vazio para o participante aparecer na mesa
                     this.pokerService.votar({
@@ -148,7 +168,22 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                         value: ''
                     }).subscribe({
                         next: () => {
-                            this.startPolling(session.id);
+                            // Recarregar sessão para ter todos os participantes atualizados
+                            this.pokerService.buscarSessao(session.id).subscribe({
+                                next: (updatedSession) => {
+                                    // Garantir que a sessão foi atualizada com os votos
+                                    if (updatedSession && updatedSession.votes) {
+                                        this.startPolling(session.id);
+                                    } else {
+                                        // Se não tem votos, tentar novamente após um pequeno delay
+                                        setTimeout(() => {
+                                            this.pokerService.buscarSessao(session.id).subscribe({
+                                                next: () => this.startPolling(session.id)
+                                            });
+                                        }, 500);
+                                    }
+                                }
+                            });
                         },
                         error: () => {
                             // Se falhar ao votar, ainda tenta iniciar polling
@@ -156,6 +191,7 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                         }
                     });
                 } else {
+                    // Já está na sessão, iniciar polling imediatamente
                     this.startPolling(session.id);
                 }
             },
@@ -179,7 +215,9 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                     if (session) {
                         const name = this.participantName();
                         // Verificar se o participante já está na sessão
-                        const isInSession = session.votes.some(v => v.participantName === name);
+                        // Garantir que votes existe e é um array
+                        const votes = session.votes || [];
+                        const isInSession = votes.some(v => v.participantName === name);
                         if (!isInSession && name) {
                             // Criar voto vazio para o participante aparecer na mesa
                             this.pokerService.votar({
@@ -188,7 +226,22 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                                 value: ''
                             }).subscribe({
                                 next: () => {
-                                    this.startPolling(session.id);
+                                    // Recarregar sessão para ter todos os participantes atualizados
+                                    this.pokerService.buscarSessao(session.id).subscribe({
+                                        next: (updatedSession) => {
+                                            // Garantir que a sessão foi atualizada com os votos
+                                            if (updatedSession && updatedSession.votes) {
+                                                this.startPolling(session.id);
+                                            } else {
+                                                // Se não tem votos, tentar novamente após um pequeno delay
+                                                setTimeout(() => {
+                                                    this.pokerService.buscarSessao(session.id).subscribe({
+                                                        next: () => this.startPolling(session.id)
+                                                    });
+                                                }, 500);
+                                            }
+                                        }
+                                    });
                                 },
                                 error: () => {
                                     // Se falhar ao votar, ainda tenta iniciar polling
@@ -196,6 +249,7 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                                 }
                             });
                         } else {
+                            // Já está na sessão, iniciar polling imediatamente
                             this.startPolling(session.id);
                         }
                     }
@@ -222,13 +276,12 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         const sessionId = this.route.snapshot.paramMap.get('id');
         
         if (sessionId) {
-            // Carregar sessão específica pelo ID
-            this.carregarSessaoPorId(Number(sessionId));
-        } else {
-            // Buscar sessão ativa
-            this.pokerService.buscarSessaoAtiva().subscribe({
+            // Carregar sessão específica pelo ID e adicionar participante
+            this.pokerService.buscarSessao(Number(sessionId)).subscribe({
                 next: (session) => {
-                    if (session) {
+                    // Verificar se o participante já está na sessão
+                    const isInSession = session.votes.some(v => v.participantName === name);
+                    if (!isInSession) {
                         // Criar voto vazio para o participante aparecer na mesa
                         this.pokerService.votar({
                             sessionId: session.id,
@@ -236,9 +289,59 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                             value: ''
                         }).subscribe({
                             next: () => {
+                                // Recarregar sessão para ter todos os participantes atualizados
+                                this.pokerService.buscarSessao(session.id).subscribe({
+                                    next: () => {
+                                        this.startPolling(session.id);
+                                    }
+                                });
+                            },
+                            error: () => {
+                                // Mesmo se falhar, iniciar polling
                                 this.startPolling(session.id);
                             }
                         });
+                    } else {
+                        // Já está na sessão, apenas iniciar polling
+                        this.startPolling(session.id);
+                    }
+                },
+                error: () => {
+                    // Se não encontrar sessão, tentar buscar sessão ativa
+                    this.carregarSessaoAtiva();
+                }
+            });
+        } else {
+            // Buscar sessão ativa
+            this.pokerService.buscarSessaoAtiva().subscribe({
+                next: (session) => {
+                    if (session) {
+                        // Verificar se o participante já está na sessão
+                        const isInSession = session.votes.some(v => v.participantName === name);
+                        if (!isInSession) {
+                            // Criar voto vazio para o participante aparecer na mesa
+                            this.pokerService.votar({
+                                sessionId: session.id,
+                                participantName: name,
+                                value: ''
+                            }).subscribe({
+                                next: () => {
+                                    // Recarregar sessão para ter todos os participantes atualizados
+                                    this.pokerService.buscarSessao(session.id).subscribe({
+                                        next: () => {
+                                            this.startPolling(session.id);
+                                        }
+                                    });
+                                },
+                                error: () => {
+                                    // Mesmo se falhar, iniciar polling
+                                    this.startPolling(session.id);
+                                }
+                            });
+                        } else {
+                            // Já está na sessão, apenas iniciar polling
+                            this.startPolling(session.id);
+                        }
                     }
                 }
             });
@@ -354,20 +457,41 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
 
     private startPolling(sessionId: number) {
         this.pollingSubscription?.unsubscribe();
-        this.pollingSubscription = this.pokerService.startPolling(sessionId).subscribe({
+        
+        // Buscar sessão imediatamente antes de iniciar polling
+        this.pokerService.buscarSessao(sessionId).subscribe({
             next: (session) => {
-                // Atualizar sessão com dados mais recentes
+                // Garantir que a sessão tem votos antes de iniciar polling
+                if (!session.votes) {
+                    session.votes = [];
+                }
+                // Atualizar sessão imediatamente para mostrar dados atuais
                 this.pokerService.currentSession.set(session);
                 
-                // Se a sessão foi fechada, parar polling
-                if (session.status === 'CLOSED') {
-                    this.pollingSubscription?.unsubscribe();
-                }
+                // Iniciar polling após carregar sessão inicial
+                this.pollingSubscription = this.pokerService.startPolling(sessionId).subscribe({
+                    next: (updatedSession) => {
+                        // Atualizar sessão com dados mais recentes
+                        // Garantir que todos os votos sejam preservados
+                        if (!updatedSession.votes) {
+                            updatedSession.votes = [];
+                        }
+                        this.pokerService.currentSession.set(updatedSession);
+                        
+                        // Se a sessão foi fechada, parar polling
+                        if (updatedSession.status === 'CLOSED') {
+                            this.pollingSubscription?.unsubscribe();
+                        }
+                    },
+                    error: (error) => {
+                        console.error('Erro no polling:', error);
+                        // Parar polling em caso de erro
+                        this.pollingSubscription?.unsubscribe();
+                    }
+                });
             },
             error: (error) => {
-                console.error('Erro no polling:', error);
-                // Parar polling em caso de erro
-                this.pollingSubscription?.unsubscribe();
+                console.error('Erro ao carregar sessão inicial:', error);
             }
         });
     }

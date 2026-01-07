@@ -77,18 +77,31 @@
                         [averageVote]="session()!.averageVote" />
 
                     <!-- Participants around the table with flip cards -->
-                    @for (vote of session()!.votes; track vote.id; let i = $index) {
-                    @let pos = getCardPosition(i, session()!.votes.length);
-                    <app-participant-card 
-                        [vote]="vote"
-                        [participantName]="participantName()!"
-                        [top]="pos.top"
-                        [left]="pos.left" />
+                    @if (hasParticipants()) {
+                        @for (vote of session()!.votes; track vote.id; let i = $index) {
+                        @let pos = getCardPosition(i, session()!.votes.length);
+                        <app-participant-card 
+                            [vote]="vote"
+                            [participantName]="participantName()!"
+                            [top]="pos.top"
+                            [left]="pos.left" />
+                        }
+                    } @else {
+                        <!-- Mensagem quando não há participantes ainda -->
+                        <div class="no-participants-message">
+                            <p>Aguardando participantes...</p>
+                            <p class="debug-info">Total: {{ totalParticipants() }} | Votaram: {{ votedCount() }}</p>
+                        </div>
                     }
                 </div>
             </div>
 
-            <!-- Master Panel (Right Sidebar) -->
+            <!-- Progress List (Right Sidebar) -->
+            <app-progress-list 
+                [votes]="session()!.votes"
+                [status]="session()!.status" />
+
+            <!-- Master Panel (Right Sidebar - Only when revealed) -->
             @if (isMaster() && session()!.status === 'REVEALED') {
             <app-master-panel 
                 [votes]="revealedVotes()"
