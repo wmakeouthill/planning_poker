@@ -1,0 +1,97 @@
+services:
+  # Backend - Spring Boot
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: planning-poker-backend
+    ports:
+      - "8080:8080"
+      - "5005:5005"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-planningpoker}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Sao_Paulo
+      - SPRING_DATASOURCE_USERNAME=${MYSQL_USER:-planningpoker}
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+    volumes:
+      - ./backend:/app
+      - maven-cache:/root/.m2
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - planning-poker-network
+    command: mvn spring-boot:run -Dspring-boot.run.jvmArguments="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+
+  # Frontend - Angular
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: planning-poker-frontend
+    ports:
+      - "4200:4200"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - NG_APP_API_URL=${NG_APP_API_URL:-http://localhost:8080/api}
+      - NG_APP_GOOGLE_CLIENT_ID=${NG_APP_GOOGLE_CLIENT_ID:-}
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - planning-poker-network
+    command: npm run start -- --host 0.0.0.0 --poll 2000
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: planning-poker-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-planningpoker}
+      - MYSQL_USER=${MYSQL_USER:-planningpoker}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/init-db:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - planning-poker-network
+
+  # phpMyAdmin (opcional - use: docker-compose --profile tools up)
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: planning-poker-phpmyadmin
+    ports:
+      - "8081:80"
+    environment:
+      - PMA_HOST=mysql
+      - PMA_USER=${MYSQL_USER:-planningpoker}
+      - PMA_PASSWORD=${MYSQL_PASSWORD}
+    depends_on:
+      - mysql
+    networks:
+      - planning-poker-network
+    profiles:
+      - tools
+
+volumes:
+  mysql-data:
+  maven-cache:
+  frontend-node-modules:
+
+networks:
+  planning-poker-network:
+    driver: bridge

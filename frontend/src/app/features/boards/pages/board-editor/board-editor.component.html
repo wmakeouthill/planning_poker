@@ -1,0 +1,82 @@
+<div class="board-editor-page fade-in">
+    @if (loading()) {
+    <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>Carregando board...</p>
+    </div>
+    } @else if (board()) {
+    <!-- Header -->
+    <header class="editor-header">
+        <div class="header-left">
+            <button class="back-btn" (click)="goBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5m7-7l-7 7 7 7" />
+                </svg>
+            </button>
+            <input type="text" class="title-input" placeholder="Título do board" [value]="title()"
+                (input)="title.set($any($event.target).value)" />
+        </div>
+
+        <div class="header-actions">
+            <button class="view-toggle" (click)="toggleView()">
+                @if (viewMode() === 'edit') {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                Preview
+                } @else {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Editar
+                }
+            </button>
+
+            <button class="btn-primary" (click)="save()" [disabled]="saving()">
+                @if (saving()) {
+                <span class="saving-spinner"></span>
+                Salvando...
+                } @else {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 13l4 4L19 7" />
+                </svg>
+                Salvar
+                }
+            </button>
+        </div>
+    </header>
+
+    <!-- Description -->
+    <div class="description-container">
+        <input type="text" class="description-input" placeholder="Adicione uma descrição..." [value]="description()"
+            (input)="description.set($any($event.target).value)" />
+    </div>
+
+    <!-- Editor / Preview -->
+    <div class="editor-container">
+        @if (viewMode() === 'edit') {
+        <textarea class="markdown-editor" placeholder="Digite seu conteúdo em Markdown...
+
+# Título
+## Subtítulo
+
+- Item da lista
+- Outro item
+
+**Texto em negrito**
+*Texto em itálico*
+
+`código inline`
+
+```
+bloco de código
+```" [value]="content()" (input)="content.set($any($event.target).value)"></textarea>
+        } @else {
+        <div class="markdown-preview" [innerHTML]="renderMarkdown(content())"></div>
+        }
+    </div>
+    }
+</div>

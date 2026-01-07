@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="004-create-poker-session-table" author="planning-poker">
+        <validCheckSum>9:8ec54c1bddee4fd477286d5f9d71c538</validCheckSum>
+        <validCheckSum>9:f8c3a1f633b200e9b774a2eb96e7a02d</validCheckSum>
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="PP_POKER_SESSION"/>
+            </not>
+        </preConditions>
+        
+        <comment>Criação da tabela de sessões de poker</comment>
+        
+        <createTable tableName="PP_POKER_SESSION">
+            <column name="ID_SESSION" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="TXT_NAME" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="COD_STATUS" type="VARCHAR(20)" defaultValue="VOTING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ID_STORY" type="BIGINT"/>
+            <column name="DAT_CREATED" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DAT_REVEALED" type="TIMESTAMP"/>
+        </createTable>
+
+        <addForeignKeyConstraint 
+            baseTableName="PP_POKER_SESSION" 
+            baseColumnNames="ID_STORY"
+            constraintName="fk_session_story"
+            referencedTableName="PP_STORY"
+            referencedColumnNames="ID_STORY"
+            onDelete="SET NULL"/>
+
+        <createIndex tableName="PP_POKER_SESSION" indexName="idx_session_status">
+            <column name="COD_STATUS"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

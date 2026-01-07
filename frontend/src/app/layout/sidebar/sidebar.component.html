@@ -1,0 +1,49 @@
+<aside class="sidebar" [class.open]="isOpen">
+    <!-- Header -->
+    <div class="sidebar-header">
+        <div class="logo">
+            <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5" />
+                <path d="M2 12l10 5 10-5" />
+            </svg>
+            @if (isOpen) {
+            <span class="logo-text">Planning Poker</span>
+            }
+        </div>
+
+        <button class="toggle-btn" (click)="onToggle()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                @if (isOpen) {
+                <path d="M15 19l-7-7 7-7" />
+                } @else {
+                <path d="M9 5l7 7-7 7" />
+                }
+            </svg>
+        </button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        @for (item of navItems; track item.path) {
+        <a [routerLink]="item.path" routerLinkActive="active" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path [attr.d]="item.icon" />
+            </svg>
+            @if (isOpen) {
+            <span class="nav-label">{{ item.label }}</span>
+            }
+        </a>
+        }
+    </nav>
+
+    <!-- Footer -->
+    <div class="sidebar-footer">
+        @if (isOpen) {
+        <div class="footer-info">
+            <span class="version">v1.0.0</span>
+            <span class="copyright">© 2026</span>
+        </div>
+        }
+    </div>
+</aside>

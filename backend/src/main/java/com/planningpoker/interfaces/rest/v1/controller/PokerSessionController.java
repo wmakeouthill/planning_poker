@@ -1,0 +1,67 @@
+package com.planningpoker.interfaces.rest.v1.controller;
+
+import com.planningpoker.aplicacao.ServicoPokerSession;
+import com.planningpoker.dominio.dto.*;
+import com.planningpoker.dominio.entidade.PokerSession;
+import com.planningpoker.dominio.entidade.Vote;
+import com.planningpoker.interfaces.rest.v1.PokerSessionAPI;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+/**
+ * Controller REST para Poker Sessions.
+ */
+@RequiredArgsConstructor
+@RestController
+public class PokerSessionController implements PokerSessionAPI {
+
+    private final ServicoPokerSession servicoPokerSession;
+
+    @Override
+    public ResponseEntity<List<PokerSession>> listarAtivas() {
+        return ResponseEntity.ok(servicoPokerSession.listarAtivas());
+    }
+
+    @Override
+    public ResponseEntity<PokerSessionDTO> buscarPorId(Long id, String participant) {
+        return ResponseEntity.ok(servicoPokerSession.buscarPorId(id, participant));
+    }
+
+    @Override
+    public ResponseEntity<PokerSession> criar(CreateSessionDTO dto) {
+        var session = servicoPokerSession.criar(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(session);
+    }
+
+    @Override
+    public ResponseEntity<Vote> votar(VoteRequestDTO dto) {
+        return ResponseEntity.ok(servicoPokerSession.votar(dto));
+    }
+
+    @Override
+    public ResponseEntity<PokerSession> revelarVotos(Long id) {
+        return ResponseEntity.ok(servicoPokerSession.revelarVotos(id));
+    }
+
+    @Override
+    public ResponseEntity<PokerSession> resetarVotos(Long id) {
+        return ResponseEntity.ok(servicoPokerSession.resetarVotos(id));
+    }
+
+    @Override
+    public ResponseEntity<Void> fecharSessao(Long id) {
+        servicoPokerSession.fecharSessao(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    public ResponseEntity<PokerSession> buscarSessaoAtiva() {
+        return servicoPokerSession.buscarSessaoAtiva()
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.noContent().build());
+    }
+}

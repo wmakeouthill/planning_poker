@@ -1,0 +1,191 @@
+<div class="poker-room-page fade-in">
+    <!-- Header -->
+    <header class="room-header">
+        <div>
+            <h1 class="page-title">Poker Planning</h1>
+            <p class="page-subtitle">
+                @if (session()) {
+                {{ session()!.name }} •
+                @if (session()!.status === 'VOTING') {
+                Votação em andamento
+                } @else if (session()!.status === 'REVEALED') {
+                Votos revelados
+                } @else {
+                Sessão encerrada
+                }
+                } @else {
+                Crie ou entre em uma sessão
+                }
+            </p>
+        </div>
+
+        <div class="header-actions">
+            @if (participantName()) {
+            <span class="participant-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                {{ participantName() }}
+            </span>
+            }
+
+            @if (!session()) {
+            <button class="btn-primary" (click)="openCreateModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14M5 12h14" />
+                </svg>
+                Nova Sessão
+            </button>
+            }
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="room-content">
+        @if (!session()) {
+        <!-- Empty State -->
+        <div class="empty-state">
+            <div class="empty-icon-container">
+                <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+            </div>
+            <h3>Nenhuma sessão ativa</h3>
+            <p>Crie uma nova sessão para começar o planning poker com sua equipe</p>
+            <button class="btn-primary" (click)="openCreateModal()">
+                Criar Sessão
+            </button>
+        </div>
+        } @else {
+        <!-- Poker Table -->
+        <div class="poker-table-container">
+            <div class="poker-table">
+                <!-- Center info -->
+                <div class="table-center">
+                    @if (session()!.status === 'VOTING') {
+                    <div class="voting-status">
+                        <span class="vote-count">{{ votedCount() }}/{{ totalParticipants() }}</span>
+                        <span class="vote-label">votaram</span>
+                    </div>
+                    } @else if (session()!.status === 'REVEALED') {
+                    <div class="result-display">
+                        <span class="result-label">Média</span>
+                        <span class="result-value">{{ session()!.averageVote?.toFixed(1) || '-' }}</span>
+                    </div>
+                    }
+                </div>
+
+                <!-- Participants around the table -->
+                @for (vote of session()!.votes; track vote.id; let i = $index) {
+                @let pos = getCardPosition(i, session()!.votes.length);
+                <div class="participant-card" [style.top]="pos.top" [style.left]="pos.left"
+                    [class.voted]="vote.hasVoted" [class.revealed]="vote.revealed">
+                    <div class="participant-vote">
+                        @if (vote.revealed && vote.value) {
+                        <span class="vote-value">{{ vote.value }}</span>
+                        } @else if (vote.hasVoted) {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 13l4 4L19 7" />
+                        </svg>
+                        } @else {
+                        <span class="waiting">?</span>
+                        }
+                    </div>
+                    <span class="participant-name">{{ vote.participantName }}</span>
+                </div>
+                }
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            @if (session()!.status === 'VOTING') {
+            <button class="btn-reveal" (click)="revealVotes()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                Revelar Votos
+            </button>
+            } @else if (session()!.status === 'REVEALED') {
+            <button class="btn-reset" (click)="resetVotes()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Nova Rodada
+            </button>
+            }
+        </div>
+
+        <!-- Voting Cards -->
+        @if (session()!.status === 'VOTING') {
+        <div class="voting-cards">
+            @for (value of POKER_VALUES; track value) {
+            <button class="voting-card" [class.selected]="selectedCard() === value" (click)="selectCard(value)">
+                <span class="card-value">{{ value }}</span>
+            </button>
+            }
+        </div>
+        }
+        }
+    </div>
+</div>
+
+<!-- Join Modal -->
+@if (showJoinModal()) {
+<div class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Bem-vindo ao Poker Planning!</h2>
+        </div>
+
+        <div class="modal-body">
+            <p class="modal-description">Digite seu nome para participar das votações</p>
+            <div class="form-group">
+                <label for="name">Seu nome</label>
+                <input id="name" type="text" class="input-glass" placeholder="Ex: João Silva" [value]="tempName()"
+                    (input)="tempName.set($any($event.target).value)" (keyup.enter)="joinSession()" />
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-primary full-width" (click)="joinSession()">
+                Entrar
+            </button>
+        </div>
+    </div>
+</div>
+}
+
+<!-- Create Session Modal -->
+@if (showCreateModal()) {
+<div class="modal-overlay" (click)="closeCreateModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h2>Nova Sessão</h2>
+            <button class="close-btn" (click)="closeCreateModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="sessionName">Nome da sessão</label>
+                <input id="sessionName" type="text" class="input-glass" placeholder="Ex: Sprint 42 Planning"
+                    [value]="newSessionName()" (input)="newSessionName.set($any($event.target).value)"
+                    (keyup.enter)="createSession()" />
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-secondary" (click)="closeCreateModal()">Cancelar</button>
+            <button class="btn-primary" (click)="createSession()">Criar Sessão</button>
+        </div>
+    </div>
+</div>
+}

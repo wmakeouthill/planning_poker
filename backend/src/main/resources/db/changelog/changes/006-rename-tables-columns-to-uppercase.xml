@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Migração: Dropar e recriar tabelas com nomes corretos em maiúsculas -->
+    <changeSet id="006-rename-tables-columns-to-uppercase-v2" author="planning-poker">
+        <!-- 
+            Executa apenas se:
+            1. Nem todas as tabelas corretas existem, E
+            2. Pelo menos alguma tabela (antiga ou nova) existe
+            Se todas as tabelas corretas já existirem, marca como executado (MARK_RAN).
+            Se nenhuma tabela existir, marca como executado (MARK_RAN).
+        -->
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <and>
+                        <tableExists tableName="PP_BOARD"/>
+                        <tableExists tableName="PP_STORY"/>
+                        <tableExists tableName="PP_POKER_SESSION"/>
+                        <tableExists tableName="PP_VOTE"/>
+                    </and>
+                </not>
+                <or>
+                    <tableExists tableName="pp_board"/>
+                    <tableExists tableName="PP_BOARD"/>
+                    <tableExists tableName="pp_story"/>
+                    <tableExists tableName="PP_STORY"/>
+                    <tableExists tableName="pp_poker_session"/>
+                    <tableExists tableName="PP_POKER_SESSION"/>
+                    <tableExists tableName="pp_vote"/>
+                    <tableExists tableName="PP_VOTE"/>
+                </or>
+            </and>
+        </preConditions>
+        
+        <comment>Dropar tabelas antigas e recriar com nomes corretos em maiúsculas</comment>
+        
+        <!-- Limpar registros de changesets anteriores que podem ter falhado -->
+        <sql>
+            DELETE FROM DATABASECHANGELOG 
+            WHERE id = '006-rename-tables-columns-to-uppercase' 
+            AND author = 'planning-poker';
+        </sql>
+        
+        <!-- Dropar tabelas usando SQL condicional para evitar erros se não existirem -->
+        <sql>
+            SET FOREIGN_KEY_CHECKS = 0;
+            
+            -- Dropar PP_VOTE (em qualquer variação de nome)
+            DROP TABLE IF EXISTS pp_vote;
+            DROP TABLE IF EXISTS PP_VOTE;
+            
+            -- Dropar PP_POKER_SESSION (em qualquer variação de nome)
+            DROP TABLE IF EXISTS pp_poker_session;
+            DROP TABLE IF EXISTS PP_POKER_SESSION;
+            
+            -- Dropar PP_STORY (em qualquer variação de nome)
+            DROP TABLE IF EXISTS pp_story;
+            DROP TABLE IF EXISTS PP_STORY;
+            
+            -- Dropar PP_BOARD (em qualquer variação de nome)
+            DROP TABLE IF EXISTS pp_board;
+            DROP TABLE IF EXISTS PP_BOARD;
+            
+            SET FOREIGN_KEY_CHECKS = 1;
+        </sql>
+        
+        <!-- Recriar tabela PP_BOARD -->
+        <createTable tableName="PP_BOARD">
+            <column name="ID_BOARD" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="TXT_TITLE" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TXT_DESCRIPTION" type="VARCHAR(500)"/>
+            <column name="TXT_CONTENT" type="CLOB"/>
+            <column name="DAT_CREATED" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DAT_UPDATED" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+        
+        <createIndex tableName="PP_BOARD" indexName="idx_board_updated_at">
+            <column name="DAT_UPDATED" descending="true"/>
+        </createIndex>
+        
+        <!-- Recriar tabela PP_STORY -->
+        <createTable tableName="PP_STORY">
+            <column name="ID_STORY" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="TXT_TITLE" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TXT_DESCRIPTION" type="CLOB"/>
+            <column name="NUM_ESTIMATED_POINTS" type="INT"/>
+            <column name="ID_BOARD" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DAT_CREATED" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DAT_UPDATED" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+        
+        <addForeignKeyConstraint 
+            baseTableName="PP_STORY" 
+            baseColumnNames="ID_BOARD"
+            constraintName="fk_story_board"
+            referencedTableName="PP_BOARD"
+            referencedColumnNames="ID_BOARD"
+            onDelete="CASCADE"/>
+        
+        <createIndex tableName="PP_STORY" indexName="idx_story_board_id">
+            <column name="ID_BOARD"/>
+        </createIndex>
+        
+        <!-- Recriar tabela PP_POKER_SESSION -->
+        <createTable tableName="PP_POKER_SESSION">
+            <column name="ID_SESSION" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="TXT_NAME" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="COD_STATUS" type="VARCHAR(20)" defaultValue="VOTING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ID_STORY" type="BIGINT"/>
+            <column name="DAT_CREATED" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DAT_REVEALED" type="TIMESTAMP"/>
+        </createTable>
+        
+        <addForeignKeyConstraint 
+            baseTableName="PP_POKER_SESSION" 
+            baseColumnNames="ID_STORY"
+            constraintName="fk_session_story"
+            referencedTableName="PP_STORY"
+            referencedColumnNames="ID_STORY"
+            onDelete="SET NULL"/>
+        
+        <createIndex tableName="PP_POKER_SESSION" indexName="idx_session_status">
+            <column name="COD_STATUS"/>
+        </createIndex>
+        
+        <!-- Recriar tabela PP_VOTE -->
+        <createTable tableName="PP_VOTE">
+            <column name="ID_VOTE" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="TXT_PARTICIPANT_NAME" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TXT_VALUE" type="VARCHAR(10)"/>
+            <column name="IND_REVEALED" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ID_SESSION" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DAT_VOTED" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        
+        <addForeignKeyConstraint 
+            baseTableName="PP_VOTE" 
+            baseColumnNames="ID_SESSION"
+            constraintName="fk_vote_session"
+            referencedTableName="PP_POKER_SESSION"
+            referencedColumnNames="ID_SESSION"
+            onDelete="CASCADE"/>
+        
+        <createIndex tableName="PP_VOTE" indexName="idx_vote_session_id">
+            <column name="ID_SESSION"/>
+        </createIndex>
+        
+        <addUniqueConstraint 
+            tableName="PP_VOTE" 
+            columnNames="ID_SESSION, TXT_PARTICIPANT_NAME"
+            constraintName="uk_vote_session_participant"/>
+    </changeSet>
+
+</databaseChangeLog>

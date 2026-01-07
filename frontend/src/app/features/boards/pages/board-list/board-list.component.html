@@ -1,0 +1,114 @@
+<div class="board-list-page fade-in">
+    <!-- Header -->
+    <header class="page-header">
+        <div>
+            <h1 class="page-title">Boards</h1>
+            <p class="page-subtitle">Gerencie suas histórias e documentações</p>
+        </div>
+        <button class="btn-primary" (click)="openCreateModal()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14M5 12h14" />
+            </svg>
+            Novo Board
+        </button>
+    </header>
+
+    <!-- Loading -->
+    @if (loading()) {
+    <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>Carregando boards...</p>
+    </div>
+    }
+
+    <!-- Empty State -->
+    @if (!loading() && boards().length === 0) {
+    <div class="empty-state">
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <h3>Nenhum board encontrado</h3>
+        <p>Crie seu primeiro board para começar a documentar suas histórias</p>
+        <button class="btn-primary" (click)="openCreateModal()">
+            Criar primeiro board
+        </button>
+    </div>
+    }
+
+    <!-- Board Grid -->
+    @if (!loading() && boards().length > 0) {
+    <div class="board-grid">
+        @for (board of boards(); track board.id) {
+        <a [routerLink]="['/boards', board.id]" class="board-card card-hover">
+            <div class="board-card-header">
+                <div class="board-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div>
+                <button class="delete-btn" (click)="deleteBoard($event, board.id)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </button>
+            </div>
+
+            <h3 class="board-title">{{ board.title }}</h3>
+
+            @if (board.description) {
+            <p class="board-description">{{ board.description }}</p>
+            }
+
+            <div class="board-meta">
+                <span class="board-date">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {{ formatDate(board.updatedAt) }}
+                </span>
+            </div>
+        </a>
+        }
+    </div>
+    }
+</div>
+
+<!-- Create Modal -->
+@if (showCreateModal()) {
+<div class="modal-overlay" (click)="closeCreateModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h2>Novo Board</h2>
+            <button class="close-btn" (click)="closeCreateModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="title">Título</label>
+                <input id="title" type="text" class="input-glass" placeholder="Nome do board" [value]="newBoardTitle()"
+                    (input)="newBoardTitle.set($any($event.target).value)" />
+            </div>
+
+            <div class="form-group">
+                <label for="description">Descrição (opcional)</label>
+                <textarea id="description" class="input-glass" placeholder="Breve descrição do board" rows="3"
+                    [value]="newBoardDescription()"
+                    (input)="newBoardDescription.set($any($event.target).value)"></textarea>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-secondary" (click)="closeCreateModal()">Cancelar</button>
+            <button class="btn-primary" (click)="createBoard()">Criar Board</button>
+        </div>
+    </div>
+</div>
+}

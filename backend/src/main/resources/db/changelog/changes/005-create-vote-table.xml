@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="005-create-vote-table" author="planning-poker">
+        <validCheckSum>9:e38edc3fddda2b42290ced491e0d63fc</validCheckSum>
+        <validCheckSum>9:e684c4ba96683978b4d65aab684d5d2b</validCheckSum>
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="PP_VOTE"/>
+                </not>
+                <tableExists tableName="PP_POKER_SESSION"/>
+            </and>
+        </preConditions>
+        
+        <comment>Criação da tabela de votos</comment>
+        
+        <createTable tableName="PP_VOTE">
+            <column name="ID_VOTE" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="TXT_PARTICIPANT_NAME" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TXT_VALUE" type="VARCHAR(10)"/>
+            <column name="IND_REVEALED" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ID_SESSION" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DAT_VOTED" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint 
+            baseTableName="PP_VOTE" 
+            baseColumnNames="ID_SESSION"
+            constraintName="fk_vote_session"
+            referencedTableName="PP_POKER_SESSION"
+            referencedColumnNames="ID_SESSION"
+            onDelete="CASCADE"/>
+
+        <createIndex tableName="PP_VOTE" indexName="idx_vote_session_id">
+            <column name="ID_SESSION"/>
+        </createIndex>
+
+        <addUniqueConstraint 
+            tableName="PP_VOTE" 
+            columnNames="ID_SESSION, TXT_PARTICIPANT_NAME"
+            constraintName="uk_vote_session_participant"/>
+    </changeSet>
+
+</databaseChangeLog>

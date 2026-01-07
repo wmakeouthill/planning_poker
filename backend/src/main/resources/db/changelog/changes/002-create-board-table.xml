@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="002-create-board-table" author="planning-poker">
+        <validCheckSum>9:8fb9435fc4274657038c070da4d41028</validCheckSum>
+        <validCheckSum>9:c083636c5999f6d1cd276245df9f8464</validCheckSum>
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="PP_BOARD"/>
+            </not>
+        </preConditions>
+        
+        <comment>Criação da tabela de boards</comment>
+        
+        <createTable tableName="PP_BOARD">
+            <column name="ID_BOARD" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="TXT_TITLE" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TXT_DESCRIPTION" type="VARCHAR(500)"/>
+            <column name="TXT_CONTENT" type="CLOB"/>
+            <column name="DAT_CREATED" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DAT_UPDATED" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+
+        <createIndex tableName="PP_BOARD" indexName="idx_board_updated_at">
+            <column name="DAT_UPDATED" descending="true"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

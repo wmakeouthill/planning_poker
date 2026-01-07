@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="003-create-story-table" author="planning-poker">
+        <validCheckSum>9:2dd444e831ca22179f0f9dc5f40d2816</validCheckSum>
+        <validCheckSum>9:2f1dc967c7bf96fd70d286d7527db06d</validCheckSum>
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="PP_STORY"/>
+                </not>
+                <tableExists tableName="PP_BOARD"/>
+            </and>
+        </preConditions>
+        
+        <comment>Criação da tabela de stories</comment>
+        
+        <createTable tableName="PP_STORY">
+            <column name="ID_STORY" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="TXT_TITLE" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TXT_DESCRIPTION" type="CLOB"/>
+            <column name="NUM_ESTIMATED_POINTS" type="INT"/>
+            <column name="ID_BOARD" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DAT_CREATED" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DAT_UPDATED" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+
+        <addForeignKeyConstraint 
+            baseTableName="PP_STORY" 
+            baseColumnNames="ID_BOARD"
+            constraintName="fk_story_board"
+            referencedTableName="PP_BOARD"
+            referencedColumnNames="ID_BOARD"
+            onDelete="CASCADE"/>
+
+        <createIndex tableName="PP_STORY" indexName="idx_story_board_id">
+            <column name="ID_BOARD"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

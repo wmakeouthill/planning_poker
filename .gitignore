@@ -1,0 +1,40 @@
+# Backend
+backend/target/
+backend/*.log
+backend/.mvn/
+backend/.env
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/.vscode/
+frontend/.env
+
+# Docker
+docker/data/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# Environment (não commitar secrets!)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.jar
+*.war
+*.class

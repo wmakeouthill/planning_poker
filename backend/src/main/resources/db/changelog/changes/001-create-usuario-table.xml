@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="001-create-usuario-table" author="planning-poker">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="pp_usuario"/>
+            </not>
+        </preConditions>
+        
+        <comment>Criação da tabela de usuários</comment>
+        
+        <createTable tableName="pp_usuario">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="nome" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(200)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="senha" type="VARCHAR(255)"/>
+            <column name="provider" type="VARCHAR(50)" defaultValue="LOCAL"/>
+            <column name="provider_id" type="VARCHAR(255)"/>
+            <column name="avatar_url" type="VARCHAR(500)"/>
+            <column name="ativo" type="BOOLEAN" defaultValueBoolean="true"/>
+            <column name="dat_criacao" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="dat_atualizacao" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+
+        <createIndex tableName="pp_usuario" indexName="idx_usuario_email">
+            <column name="email"/>
+        </createIndex>
+
+        <createIndex tableName="pp_usuario" indexName="idx_usuario_provider">
+            <column name="provider"/>
+            <column name="provider_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

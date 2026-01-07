@@ -1,0 +1,18 @@
+FROM eclipse-temurin:21-jdk
+
+WORKDIR /app
+
+# Instalar Maven
+RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/*
+
+# Copiar pom.xml para cache de dependências
+COPY pom.xml .
+
+# Baixar dependências (cache)
+RUN mvn dependency:go-offline -B
+
+# Expor portas
+EXPOSE 8080 5005
+
+# Comando padrão
+CMD ["mvn", "spring-boot:run"]
