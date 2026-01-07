@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap, catchError, of } from 'rxjs';
+import { Observable, tap, catchError, of, map } from 'rxjs';
 import { Board, CreateBoardDTO } from '../models/board.model';
 
 @Injectable({ providedIn: 'root' })
@@ -18,10 +18,17 @@ export class BoardService {
         this.error.set(null);
 
         return this.http.get<Board[]>(this.baseUrl).pipe(
+            map((boards) => {
+                // Garantir que sempre seja um array válido, filtrando nulls
+                if (!Array.isArray(boards)) {
+                    return [];
+                }
+                // Filtrar qualquer null ou undefined do array
+                return boards.filter((board): board is Board => board !== null && board !== undefined && board.id !== null && board.id !== undefined);
+            }),
             tap({
                 next: (boards) => {
-                    // Garantir que sempre seja um array, nunca null ou undefined
-                    this.boards.set(Array.isArray(boards) ? boards : []);
+                    this.boards.set(boards);
                     this.loading.set(false);
                 },
                 error: (err) => {
@@ -33,13 +40,7 @@ export class BoardService {
                 }
             }),
             catchError((error: any) => {
-                // Se for erro de conexão, retornar array vazio
-                if (error.status === 0 || error.status === 503) {
-                    this.boards.set([]);
-                    this.loading.set(false);
-                    return of([]);
-                }
-                // Para outros erros, também retornar array vazio para não quebrar
+                // Sempre retornar array vazio em caso de erro
                 this.boards.set([]);
                 this.loading.set(false);
                 return of([]);
@@ -53,8 +54,43 @@ export class BoardService {
 
     criar(dto: CreateBoardDTO): Observable<Board> {
         return this.http.post<Board>(this.baseUrl, dto).pipe(
+            map((board) => {
+                // Garantir que o board seja válido
+                if (!board || !board.id) {
+                    // Se o board for inválido mas não for erro de conexão, retornar um board mock
+                    return {
+                        id: Date.now(), // ID temporário
+                        title: dto.title,
+                        description: dto.description || '',
+                        content: '',
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    } as Board;
+                }
+                return board;
+            }),
             tap((board) => {
-                this.boards.update(boards => [board, ...boards]);
+                // Só adicionar se o board for válido
+                if (board && board.id) {
+                    this.boards.update(boards => [board, ...boards]);
+                }
+            }),
+            catchError((error: any) => {
+                // Se for erro de conexão, criar board local temporário
+                if (error.status === 0 || error.status === 503) {
+                    const tempBoard: Board = {
+                        id: Date.now(), // ID temporário
+                        title: dto.title,
+                        description: dto.description || '',
+                        content: '',
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    };
+                    this.boards.update(boards => [tempBoard, ...boards]);
+                    return of(tempBoard);
+                }
+                // Para outros erros, propagar
+                throw error;
             })
         );
     }

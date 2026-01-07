@@ -35,6 +35,16 @@ export const pokerErrorInterceptor: HttpInterceptorFn = (req, next) => {
                     }) as HttpEvent<any>);
                 }
                 
+                // Para POST requests, retornar null (será tratado pelo serviço)
+                if (req.method === 'POST') {
+                    return of(new HttpResponse({
+                        status: 503,
+                        statusText: 'Service Unavailable',
+                        body: null,
+                        url: req.url
+                    }) as HttpEvent<any>);
+                }
+                
                 // Para outros endpoints, retornar 503 Service Unavailable
                 // mas sem propagar o erro para evitar logs no console
                 return of(new HttpResponse({

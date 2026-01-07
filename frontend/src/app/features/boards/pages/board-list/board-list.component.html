@@ -39,7 +39,8 @@
     <!-- Board Grid -->
     @if (!loading() && boards() && boards().length > 0) {
     <div class="board-grid">
-        @for (board of boards(); track board.id) {
+        @for (board of boards(); track board?.id || $index) {
+        @if (board && board.id) {
         <a [routerLink]="['/boards', board.id]" class="board-card card-hover">
             <div class="board-card-header">
                 <div class="board-icon">
@@ -72,6 +73,7 @@
                 </span>
             </div>
         </a>
+        }
         }
     </div>
     }
