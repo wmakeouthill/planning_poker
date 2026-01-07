@@ -20,6 +20,8 @@
     <properties>
         <java.version>21</java.version>
         <springdoc.version>2.3.0</springdoc.version>
+        <!-- Pular cópia do frontend (usado no Docker onde o frontend já está em resources/static) -->
+        <skip.frontend.copy>false</skip.frontend.copy>
     </properties>
 
     <dependencies>
@@ -176,7 +178,18 @@
                 </configuration>
             </plugin>
 
-            <!-- Copiar arquivos buildados do frontend para resources/static -->
+            <!-- 
+                Copiar arquivos buildados do frontend para resources/static
+                
+                NOTA: Em produção (Docker), o frontend é copiado diretamente para 
+                src/main/resources/static/ no Dockerfile, então este plugin não é usado.
+                
+                Para desenvolvimento local com IntelliJ:
+                1. Primeiro execute: cd frontend && npm run build
+                2. Depois execute o Maven build
+                
+                O plugin só copia se o diretório existir, caso contrário é ignorado.
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
@@ -192,17 +205,13 @@
                             <outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
                             <resources>
                                 <resource>
-                                    <!-- Angular 21 gera em dist/frontend/browser -->
-                                    <!-- No Docker, o frontend será copiado para frontend/dist/frontend/browser -->
+                                    <!-- Angular gera em dist/frontend/browser -->
                                     <directory>${project.basedir}/../frontend/dist/frontend/browser</directory>
                                     <filtering>false</filtering>
                                 </resource>
                             </resources>
-                            <!-- IMPORTANTE: NUNCA pular a cópia do frontend!
-                                 Este plugin apenas COPIA os arquivos já buildados.
-                                 No Docker, o frontend já foi buildado no Stage 1 e precisa ser copiado aqui.
-                            -->
-                            <skip>false</skip>
+                            <!-- Não falhar se o diretório não existir (dev sem frontend buildado) -->
+                            <skip>${skip.frontend.copy}</skip>
                         </configuration>
                     </execution>
                 </executions>

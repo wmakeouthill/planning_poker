@@ -47,6 +47,11 @@ spring:
 server:
   port: 8080
 
+# MVC - Usar AntPathMatcher para compatibilidade com padrões /*.js
+spring.mvc:
+  pathmatch:
+    matching-strategy: ant_path_matcher
+
 # API Path
 api:
   path: /api

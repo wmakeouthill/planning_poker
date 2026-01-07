@@ -40,16 +40,16 @@ RUN mvn dependency:go-offline -B
 # Copiar código fonte do backend
 COPY backend/src ./src
 
-# Copiar frontend buildado para o caminho esperado pelo pom.xml (../frontend)
-# pom.xml procura em ${project.basedir}/../frontend, e como basedir é /app, procura em /frontend
-COPY --from=frontend-build /app/frontend/dist/frontend/browser /frontend/dist/frontend/browser
+# IMPORTANTE: Copiar frontend buildado DIRETAMENTE para src/main/resources/static
+# Isso garante que o Maven vai incluir no JAR sem depender do maven-resources-plugin
+COPY --from=frontend-build /app/frontend/dist/frontend/browser ./src/main/resources/static/
+
+# Verificar se os arquivos foram copiados corretamente
+RUN echo "=== Arquivos em src/main/resources/static ===" && ls -la ./src/main/resources/static/ && echo "=== Arquivos JS ===" && ls -la ./src/main/resources/static/*.js 2>/dev/null || echo "Nenhum arquivo .js encontrado na raiz"
 
 # Build do backend COM frontend incluído no JAR
-# IMPORTANTE: 
-# 1. O frontend já está buildado no Stage 1 e copiado para frontend/dist/frontend/browser
-# 2. O plugin maven-resources-plugin copia o frontend para resources/static/ durante process-resources
-# 3. Manter skip.frontend.build=true para não tentar buildar novamente (já está buildado)
-RUN mvn clean package -DskipTests -B -Dskip.frontend.build=true
+# -Dskip.frontend.copy=true porque já copiamos o frontend para src/main/resources/static
+RUN mvn clean package -DskipTests -B -Dskip.frontend.copy=true
 
 # Stage 3: Imagem final otimizada para Cloud Run
 FROM eclipse-temurin:21-jre-alpine
