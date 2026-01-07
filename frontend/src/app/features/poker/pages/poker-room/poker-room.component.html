@@ -79,10 +79,12 @@
                 <!-- Participants around the table -->
                 @for (vote of session()!.votes; track vote.id; let i = $index) {
                 @let pos = getCardPosition(i, session()!.votes.length);
+                @let isMyVote = vote.participantName === participantName();
+                @let canSeeValue = vote.revealed || isMyVote;
                 <div class="participant-card" [style.top]="pos.top" [style.left]="pos.left"
                     [class.voted]="vote.hasVoted" [class.revealed]="vote.revealed">
                     <div class="participant-vote">
-                        @if (vote.revealed && vote.value) {
+                        @if (canSeeValue && vote.value) {
                         <span class="vote-value">{{ vote.value }}</span>
                         } @else if (vote.hasVoted) {
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -121,10 +123,13 @@
         </div>
 
         <!-- Voting Cards -->
-        @if (session()!.status === 'VOTING') {
+        @if (session()!.status === 'VOTING' && participantName()) {
         <div class="voting-cards">
             @for (value of POKER_VALUES; track value) {
-            <button class="voting-card" [class.selected]="selectedCard() === value" (click)="selectCard(value)">
+            <button class="voting-card" 
+                [class.selected]="selectedCard() === value || (myVote()?.value === value && myVote()?.hasVoted)"
+                (click)="selectCard(value)"
+                [disabled]="loading()">
                 <span class="card-value">{{ value }}</span>
             </button>
             }

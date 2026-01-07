@@ -1,14 +1,20 @@
 .poker-room-page {
     display: flex;
     flex-direction: column;
-    min-height: calc(100vh - 4rem);
+    height: 100%;
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height para mobile */
+    overflow: hidden;
+    padding: 1rem;
+    box-sizing: border-box;
 }
 
 .room-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
+    flex-shrink: 0;
 }
 
 .page-title {
@@ -61,6 +67,8 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-height: 0; /* Permite que o flex shrink funcione */
+    overflow: hidden;
 }
 
 /* Empty State */
@@ -105,17 +113,20 @@
 
 /* Poker Table */
 .poker-table-container {
-    flex: 1;
+    flex: 1 1 auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
+    padding: 1rem;
+    min-height: 0;
+    overflow: visible;
 }
 
 .poker-table {
     position: relative;
     width: 100%;
     max-width: 700px;
+    max-height: 100%;
     aspect-ratio: 16 / 10;
     background: radial-gradient(ellipse at center, #2d5a3d 0%, #1a472a 50%, #0f2818 100%);
     border-radius: 50%;
@@ -256,7 +267,8 @@
     display: flex;
     justify-content: center;
     gap: 1rem;
-    padding: 1.5rem 0;
+    padding: 0.75rem 0;
+    flex-shrink: 0;
 }
 
 .btn-reveal,
@@ -306,10 +318,13 @@
     justify-content: center;
     flex-wrap: wrap;
     gap: 0.75rem;
-    padding: 1.5rem;
+    padding: 1rem;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 16px;
-    margin-top: auto;
+    flex-shrink: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
 }
 
 .voting-card {
@@ -323,6 +338,11 @@
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s ease;
+}
+
+.voting-card:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .voting-card:hover {
@@ -453,32 +473,251 @@
     justify-content: center;
 }
 
+/* Responsividade - Tablet */
+@media (max-width: 1024px) {
+    .poker-table {
+        max-width: 90%;
+    }
+
+    .participant-vote {
+        width: 55px;
+        height: 75px;
+        font-size: 1.25rem;
+    }
+
+    .participant-name {
+        font-size: 0.7rem;
+        max-width: 90px;
+    }
+
+    .vote-count {
+        font-size: 2.5rem;
+    }
+
+    .result-value {
+        font-size: 3rem;
+    }
+}
+
+/* Responsividade - Mobile */
 @media (max-width: 768px) {
+    .poker-room-page {
+        padding: 0.5rem;
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+
     .room-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 1rem;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+    }
+
+    .page-subtitle {
+        font-size: 0.875rem;
+    }
+
+    .header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .participant-badge {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.75rem;
+    }
+
+    .poker-table-container {
+        padding: 0.5rem;
+        flex: 1 1 auto;
+        min-height: 0;
     }
 
     .poker-table {
         max-width: 100%;
+        max-height: 100%;
+        border-width: 8px;
     }
 
     .participant-vote {
-        width: 50px;
-        height: 70px;
+        width: 45px;
+        height: 60px;
+        font-size: 1rem;
+    }
+
+    .participant-name {
+        font-size: 0.65rem;
+        padding: 0.2rem 0.5rem;
+        max-width: 80px;
+    }
+
+    .vote-count {
+        font-size: 2rem;
+    }
+
+    .vote-label {
+        font-size: 0.75rem;
+    }
+
+    .result-value {
+        font-size: 2.5rem;
+    }
+
+    .result-label {
+        font-size: 0.75rem;
+    }
+
+    .controls {
+        padding: 0.5rem 0;
+    }
+
+    .btn-reveal,
+    .btn-reset {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.875rem;
     }
 
     .voting-cards {
         gap: 0.5rem;
+        padding: 0.75rem;
+        max-height: 120px;
+        overflow-y: auto;
     }
 
     .voting-card {
-        width: 50px;
-        height: 70px;
+        width: 45px;
+        height: 65px;
     }
 
     .card-value {
+        font-size: 1.125rem;
+    }
+
+    .modal {
+        max-width: 90%;
+        margin: 1rem;
+    }
+
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding: 1.25rem;
+    }
+}
+
+/* Responsividade - Mobile Pequeno */
+@media (max-width: 480px) {
+    .poker-room-page {
+        padding: 0.5rem;
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+
+    .page-title {
         font-size: 1.25rem;
+    }
+
+    .poker-table {
+        border-width: 6px;
+    }
+
+    .participant-vote {
+        width: 40px;
+        height: 55px;
+        font-size: 0.875rem;
+    }
+
+    .participant-name {
+        font-size: 0.6rem;
+        max-width: 70px;
+    }
+
+    .vote-count {
+        font-size: 1.75rem;
+    }
+
+    .result-value {
+        font-size: 2rem;
+    }
+
+    .voting-card {
+        width: 40px;
+        height: 58px;
+    }
+
+    .card-value {
+        font-size: 1rem;
+    }
+
+    .btn-reveal,
+    .btn-reset {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.8125rem;
+    }
+
+    .empty-state {
+        padding: 2rem 1rem;
+    }
+
+    .empty-icon-container {
+        width: 100px;
+        height: 100px;
+    }
+
+    .empty-icon {
+        width: 50px;
+        height: 50px;
+    }
+
+    .empty-state h3 {
+        font-size: 1.25rem;
+    }
+}
+
+/* Ajustes para orientação landscape em mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+    .poker-room-page {
+        padding: 0.5rem;
+    }
+
+    .room-header {
+        margin-bottom: 0.25rem;
+    }
+
+    .poker-table-container {
+        padding: 0.25rem;
+        flex: 1 1 auto;
+    }
+
+    .poker-table {
+        max-width: 50%;
+        max-height: 100%;
+    }
+
+    .controls {
+        padding: 0.25rem 0;
+    }
+
+    .voting-cards {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding: 0.5rem;
+        max-height: 100px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .voting-card {
+        flex-shrink: 0;
+        width: 40px;
+        height: 56px;
+    }
+
+    .card-value {
+        font-size: 0.875rem;
     }
 }

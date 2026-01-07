@@ -54,7 +54,21 @@ export class PokerService {
         return this.http.get<PokerSession>(`${this.baseUrl}/sessions/active`).pipe(
             tap((session) => {
                 if (session) {
-                    this.currentSession.set(session);
+                    // Converter para formato esperado se necessário
+                    const formattedSession: PokerSession = {
+                        id: session.id,
+                        name: session.name,
+                        status: session.status,
+                        storyId: session.storyId || null,
+                        storyTitle: session.storyTitle || null,
+                        votes: session.votes || [],
+                        averageVote: session.averageVote || null,
+                        createdAt: session.createdAt,
+                        revealedAt: session.revealedAt || null
+                    };
+                    this.currentSession.set(formattedSession);
+                } else {
+                    this.currentSession.set(null);
                 }
             })
         );
@@ -62,10 +76,35 @@ export class PokerService {
 
     votar(dto: VoteRequestDTO): Observable<Vote> {
         return this.http.post<Vote>(`${this.baseUrl}/vote`, dto).pipe(
-            tap(() => {
+            tap((vote) => {
                 // Atualiza a sessão após votar
-                if (this.currentSession()) {
-                    this.buscarSessao(this.currentSession()!.id).subscribe();
+                const session = this.currentSession();
+                if (session) {
+                    // Atualiza o voto na sessão local imediatamente
+                    const votes = session.votes.map(v => 
+                        v.participantName === dto.participantName 
+                            ? { ...v, value: dto.value, hasVoted: true }
+                            : v
+                    );
+                    
+                    // Se não existe voto para este participante, adiciona
+                    if (!votes.some(v => v.participantName === dto.participantName)) {
+                        votes.push({
+                            id: vote.id,
+                            participantName: dto.participantName,
+                            value: dto.value,
+                            revealed: false,
+                            hasVoted: true
+                        });
+                    }
+                    
+                    this.currentSession.set({
+                        ...session,
+                        votes
+                    });
+                    
+                    // Busca atualização completa do servidor
+                    this.buscarSessao(session.id).subscribe();
                 }
             })
         );
@@ -73,7 +112,9 @@ export class PokerService {
 
     revelarVotos(sessionId: number): Observable<PokerSession> {
         return this.http.post<PokerSession>(`${this.baseUrl}/sessions/${sessionId}/reveal`, {}).pipe(
-            tap(() => {
+            tap((session) => {
+                this.currentSession.set(session);
+                // Busca atualização completa
                 this.buscarSessao(sessionId).subscribe();
             })
         );
@@ -81,7 +122,9 @@ export class PokerService {
 
     resetarVotos(sessionId: number): Observable<PokerSession> {
         return this.http.post<PokerSession>(`${this.baseUrl}/sessions/${sessionId}/reset`, {}).pipe(
-            tap(() => {
+            tap((session) => {
+                this.currentSession.set(session);
+                // Busca atualização completa
                 this.buscarSessao(sessionId).subscribe();
             })
         );
@@ -107,11 +150,14 @@ export class PokerService {
         }
     }
 
-    // Polling para atualização em tempo real (simplificado)
+    // Polling para atualização em tempo real
     startPolling(sessionId: number, intervalMs = 3000): Observable<PokerSession> {
         return interval(intervalMs).pipe(
             switchMap(() => this.buscarSessao(sessionId)),
-            takeWhile((session) => session.status !== 'CLOSED', true)
+            takeWhile((session) => {
+                // Continuar polling enquanto a sessão não estiver fechada
+                return session.status !== 'CLOSED';
+            }, true) // Incluir último valor antes de parar
         );
     }
 }
