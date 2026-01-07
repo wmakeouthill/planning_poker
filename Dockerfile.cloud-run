@@ -73,13 +73,20 @@ COPY --from=maven-build /app/target/planning-poker-api-*.jar /app/app.jar
 # Ajustar permissões
 RUN chown -R appuser:appuser /app
 
-# Variáveis de ambiente padrão
+# Variáveis de ambiente padrão para produção
 # IMPORTANTE: SPRING_DATASOURCE_PASSWORD, JWT_SECRET e GOOGLE_CLIENT_SECRET 
 # serão fornecidos via Secret Manager no Cloud Run
 ENV SERVER_PORT=8080
 ENV JWT_EXPIRATION=86400000
 ENV SPRING_JPA_SHOW_SQL=false
 ENV SPRING_PROFILES_ACTIVE=prod
+# Otimizações de produção
+ENV SPRING_LAZY_INIT=true
+ENV ENABLE_API_DOCS=false
+ENV ENABLE_SWAGGER=false
+ENV LOG_LEVEL_APP=INFO
+ENV LOG_LEVEL_SQL=WARN
+ENV LOG_LEVEL_LIQUIBASE=WARN
 
 # Expor porta
 EXPOSE 8080
@@ -90,11 +97,18 @@ USER appuser
 # Usar tini como init system
 ENTRYPOINT ["/sbin/tini", "--"]
 
-# Comando para iniciar a aplicação
+# Comando para iniciar a aplicação com otimizações para Cloud Run
+# TieredStopAtLevel=1: Compila código mais rápido (startup mais rápido)
+# -Xss256k: Reduz stack size por thread
+# lazy-initialization: Inicializa beans sob demanda
 CMD ["java", \
     "-Djava.security.egd=file:/dev/./urandom", \
     "-XX:+UseContainerSupport", \
     "-XX:MaxRAMPercentage=75.0", \
+    "-XX:+TieredCompilation", \
+    "-XX:TieredStopAtLevel=1", \
+    "-Xss256k", \
+    "-Dspring.main.lazy-initialization=true", \
     "-jar", \
     "/app/app.jar"]
 

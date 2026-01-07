@@ -33,7 +33,9 @@ public class SpaFallbackConfig implements ErrorController {
             "/poker-room/{id}",
             "/login",
             "/register",
-            "/join/{code}"
+            "/join/{code}",
+            "/auth/login",
+            "/auth/register"
     })
     public String forwardToAngular() {
         return "forward:/index.html";

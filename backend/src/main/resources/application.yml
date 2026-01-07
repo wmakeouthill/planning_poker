@@ -2,6 +2,10 @@ spring:
   application:
     name: planning-poker-api
 
+  # Lazy Initialization - Inicializa beans só quando necessário (startup mais rápido)
+  main:
+    lazy-initialization: ${SPRING_LAZY_INIT:false}
+
   # Virtual Threads (Java 21+)
   threads:
     virtual:
@@ -61,16 +65,18 @@ jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:86400000}
 
-# OpenAPI
+# OpenAPI - Desabilitado em produção para startup mais rápido
 springdoc:
   api-docs:
     path: /api-docs
+    enabled: ${ENABLE_API_DOCS:true}
   swagger-ui:
     path: /swagger-ui.html
+    enabled: ${ENABLE_SWAGGER:true}
 
-# Logging
+# Logging - Níveis ajustados via variável de ambiente (prod usa WARN/INFO)
 logging:
   level:
-    com.planningpoker: DEBUG
-    org.hibernate.SQL: DEBUG
-    liquibase: INFO
+    com.planningpoker: ${LOG_LEVEL_APP:DEBUG}
+    org.hibernate.SQL: ${LOG_LEVEL_SQL:DEBUG}
+    liquibase: ${LOG_LEVEL_LIQUIBASE:INFO}

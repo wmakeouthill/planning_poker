@@ -44,7 +44,8 @@ public class SecurityConfig {
                         .requestMatchers("/assets/**").permitAll()
                         
                         // Rotas do Angular Router (SPA) - Servem index.html
-                        .requestMatchers("/boards", "/boards/**", "/poker-room/**", "/login", "/register", "/join/**")
+                        .requestMatchers("/boards", "/boards/**", "/poker-room/**", "/login", "/register", "/join/**",
+                                "/auth/**")
                         .permitAll()
                         
                         // Rota de fallback para erros
