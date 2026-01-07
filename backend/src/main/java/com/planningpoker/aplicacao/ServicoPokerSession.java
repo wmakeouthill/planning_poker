@@ -1,18 +1,22 @@
 package com.planningpoker.aplicacao;
 
 import com.planningpoker.dominio.dto.*;
+import com.planningpoker.dominio.entidade.PokerSessionParticipant;
 import com.planningpoker.dominio.entidade.PokerSession;
 import com.planningpoker.dominio.entidade.Vote;
 import com.planningpoker.dominio.enums.SessionStatus;
 import com.planningpoker.dominio.exception.BusinessException;
+import com.planningpoker.dominio.exception.ForbiddenException;
 import com.planningpoker.dominio.exception.ResourceNotFoundException;
 import com.planningpoker.dominio.dto.PageResponseDTO;
+import com.planningpoker.dominio.event.PokerSessionEvent;
+import com.planningpoker.dominio.repository.PokerSessionParticipantRepository;
 import com.planningpoker.dominio.repository.PokerSessionRepository;
 import com.planningpoker.dominio.repository.StoryRepository;
 import com.planningpoker.dominio.repository.VoteRepository;
-import com.planningpoker.interfaces.rest.v1.controller.PokerWebSocketController;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -33,17 +38,25 @@ public class ServicoPokerSession {
     private final PokerSessionRepository sessionRepository;
     private final StoryRepository storyRepository;
     private final VoteRepository voteRepository;
-    private final PokerWebSocketController webSocketController;
+    private final PokerSessionParticipantRepository participantRepository;
+    private final ApplicationEventPublisher eventPublisher;
+    private final UsuarioAutenticadoProvider usuarioAutenticadoProvider;
 
     @Transactional(readOnly = true)
     public List<PokerSession> listarAtivas() {
-        log.debug("Listando sessões ativas");
-        return sessionRepository.findByStatusOrderByCreatedAtDesc(SessionStatus.VOTING);
+        var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
+        log.debug("Listando sessões ativas do usuário {}", usuario.getId());
+        return sessionRepository.findAtivasPorUsuario(usuario.getId(), SessionStatus.VOTING);
     }
 
     @Transactional(readOnly = true)
     public PokerSessionDTO buscarPorId(Long id, String participantName) {
-        log.debug("Buscando sessão por id: {}", id);
+        var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
+        log.debug("Buscando sessão por id: {} para usuário {}", id, usuario.getId());
+
+        if (!participantRepository.existsBySessionIdAndUsuarioId(id, usuario.getId())) {
+            throw new ForbiddenException("Você não participa desta sessão. Use o link de convite para entrar.");
+        }
 
         var session = sessionRepository.findByIdWithVotes(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PokerSession", id));
@@ -54,21 +67,34 @@ public class ServicoPokerSession {
     @Transactional
     public PokerSession criar(CreateSessionDTO dto) {
         log.info("Criando nova sessão de poker: {}", dto.name());
+        var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
 
         var session = new PokerSession(dto.name());
 
         if (dto.storyId() != null) {
-            var story = storyRepository.findById(dto.storyId())
+            var story = storyRepository.findByIdAndOwnerId(dto.storyId(), usuario.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Story", dto.storyId()));
             session.setStory(story);
         }
 
-        return sessionRepository.save(session);
+        var savedSession = sessionRepository.save(session);
+
+        // Criador entra automaticamente como participante (controle de acesso/histórico)
+        if (!participantRepository.existsBySessionIdAndUsuarioId(savedSession.getId(), usuario.getId())) {
+            participantRepository.save(new PokerSessionParticipant(savedSession, usuario));
+        }
+
+        return savedSession;
     }
 
     @Transactional
     public Vote votar(VoteRequestDTO dto) {
-        log.info("Registrando voto: {} -> {}", dto.participantName(), dto.value());
+        var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
+        log.info("Registrando voto (userId={}): {} -> {}", usuario.getId(), dto.participantName(), dto.value());
+
+        if (!participantRepository.existsBySessionIdAndUsuarioId(dto.sessionId(), usuario.getId())) {
+            throw new ForbiddenException("Você não participa desta sessão. Use o link de convite para entrar.");
+        }
 
         var session = sessionRepository.findById(dto.sessionId())
                 .orElseThrow(() -> new ResourceNotFoundException("PokerSession", dto.sessionId()));
@@ -101,8 +127,8 @@ public class ServicoPokerSession {
 
         var savedVote = voteRepository.save(vote);
         
-        // Notificar via WebSocket
-        webSocketController.notificarAtualizacaoSessao(dto.sessionId(), "VOTE");
+        // Publicar evento para notificação via WebSocket
+        eventPublisher.publishEvent(new PokerSessionEvent(this, dto.sessionId(), "VOTE"));
         
         return savedVote;
     }
@@ -121,8 +147,8 @@ public class ServicoPokerSession {
         session.revealVotes();
         var savedSession = sessionRepository.save(session);
         
-        // Notificar via WebSocket
-        webSocketController.notificarAtualizacaoSessao(sessionId, "REVEAL");
+        // Publicar evento para notificação via WebSocket
+        eventPublisher.publishEvent(new PokerSessionEvent(this, sessionId, "REVEAL"));
         
         return savedSession;
     }
@@ -139,8 +165,8 @@ public class ServicoPokerSession {
         
         var savedSession = sessionRepository.save(session);
         
-        // Notificar via WebSocket
-        webSocketController.notificarAtualizacaoSessao(sessionId, "RESET");
+        // Publicar evento para notificação via WebSocket
+        eventPublisher.publishEvent(new PokerSessionEvent(this, sessionId, "RESET"));
         
         return savedSession;
     }
@@ -158,7 +184,8 @@ public class ServicoPokerSession {
 
     @Transactional(readOnly = true)
     public Optional<PokerSession> buscarSessaoAtiva() {
-        return sessionRepository.findFirstByStatusOrderByCreatedAtDesc(SessionStatus.VOTING);
+        var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
+        return sessionRepository.findPrimeiraAtivaPorUsuario(usuario.getId(), SessionStatus.VOTING);
     }
 
     /**
@@ -166,26 +193,38 @@ public class ServicoPokerSession {
      */
     @Transactional(readOnly = true)
     public PageResponseDTO<PokerSessionDTO> listarHistorico(int page, int size, SessionStatus status) {
+        var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
         log.debug("Listando histórico de sessões - página: {}, tamanho: {}, status: {}", page, size, status);
         
         Pageable pageable = PageRequest.of(page, size);
         Page<PokerSession> sessionsPage;
         
         if (status != null) {
-            sessionsPage = sessionRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
+            sessionsPage = sessionRepository.findHistoricoPorUsuarioEStatus(usuario.getId(), status, pageable);
         } else {
-            sessionsPage = sessionRepository.findAllByOrderByCreatedAtDesc(pageable);
+            sessionsPage = sessionRepository.findHistoricoPorUsuario(usuario.getId(), pageable);
         }
-        
+
+        // Evitar N+1: carrega votos de uma vez e agrupa por sessão
+        var sessionIds = sessionsPage.getContent().stream().map(PokerSession::getId).toList();
+        final Map<Long, List<Vote>> votesBySessionId = sessionIds.isEmpty()
+                ? Map.of()
+                : voteRepository.findBySessionIdIn(sessionIds).stream()
+                        .collect(java.util.stream.Collectors.groupingBy(v -> v.getSession().getId()));
+
         List<PokerSessionDTO> dtos = sessionsPage.getContent().stream()
-                .map(session -> toDTO(session, null))
+                .map(session -> toDTO(session, null, votesBySessionId.getOrDefault(session.getId(), List.of())))
                 .toList();
         
         return PageResponseDTO.of(dtos, page, size, sessionsPage.getTotalElements());
     }
 
     private PokerSessionDTO toDTO(PokerSession session, String participantName) {
-        var votes = session.getVotes().stream()
+        return toDTO(session, participantName, session.getVotes());
+    }
+
+    private PokerSessionDTO toDTO(PokerSession session, String participantName, List<Vote> votesEntity) {
+        var voteDtos = votesEntity.stream()
                 .map(v -> new VoteDTO(
                         v.getId(),
                         v.getParticipantName(),
@@ -200,9 +239,25 @@ public class ServicoPokerSession {
                 session.getStatus(),
                 session.getStory() != null ? session.getStory().getId() : null,
                 session.getStory() != null ? session.getStory().getTitle() : null,
-                votes,
+                session.getInviteCode(),
+                voteDtos,
                 session.isRevealed() ? session.calculateAverage() : null,
                 session.getCreatedAt(),
                 session.getRevealedAt());
+    }
+
+    @Transactional
+    public JoinSessionResponseDTO entrarPorInviteCode(String inviteCode) {
+        var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
+        log.info("Entrando em sessão por inviteCode={} (userId={})", inviteCode, usuario.getId());
+
+        var session = sessionRepository.findByInviteCode(inviteCode)
+                .orElseThrow(() -> new ResourceNotFoundException("PokerSession com inviteCode " + inviteCode + " não encontrado"));
+
+        if (!participantRepository.existsBySessionIdAndUsuarioId(session.getId(), usuario.getId())) {
+            participantRepository.save(new PokerSessionParticipant(session, usuario));
+        }
+
+        return new JoinSessionResponseDTO(session.getId());
     }
 }

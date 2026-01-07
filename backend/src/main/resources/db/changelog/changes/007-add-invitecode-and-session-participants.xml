@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="007-1-add-session-invite-code" author="planning-poker">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <tableExists tableName="PP_POKER_SESSION"/>
+                <not>
+                    <columnExists tableName="PP_POKER_SESSION" columnName="TXT_INVITE_CODE"/>
+                </not>
+            </and>
+        </preConditions>
+
+        <comment>Adiciona inviteCode na sessão</comment>
+
+        <addColumn tableName="PP_POKER_SESSION">
+            <column name="TXT_INVITE_CODE" type="VARCHAR(64)"/>
+        </addColumn>
+
+        <createIndex tableName="PP_POKER_SESSION" indexName="idx_session_invite_code" unique="true">
+            <column name="TXT_INVITE_CODE"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="007-2-create-session-participant-table" author="planning-poker">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <tableExists tableName="PP_POKER_SESSION"/>
+                <tableExists tableName="pp_usuario"/>
+                <not>
+                    <tableExists tableName="PP_POKER_SESSION_PARTICIPANT"/>
+                </not>
+            </and>
+        </preConditions>
+
+        <comment>Cria tabela de participantes autenticados por sessão</comment>
+
+        <createTable tableName="PP_POKER_SESSION_PARTICIPANT">
+            <column name="ID_SESSION_PARTICIPANT" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="ID_SESSION" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ID_USUARIO" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DAT_JOINED" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+            baseTableName="PP_POKER_SESSION_PARTICIPANT"
+            baseColumnNames="ID_SESSION"
+            constraintName="fk_session_participant_session"
+            referencedTableName="PP_POKER_SESSION"
+            referencedColumnNames="ID_SESSION"
+            onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint
+            baseTableName="PP_POKER_SESSION_PARTICIPANT"
+            baseColumnNames="ID_USUARIO"
+            constraintName="fk_session_participant_usuario"
+            referencedTableName="pp_usuario"
+            referencedColumnNames="id"
+            onDelete="CASCADE"/>
+
+        <createIndex tableName="PP_POKER_SESSION_PARTICIPANT" indexName="idx_session_participant_session">
+            <column name="ID_SESSION"/>
+        </createIndex>
+
+        <createIndex tableName="PP_POKER_SESSION_PARTICIPANT" indexName="idx_session_participant_usuario">
+            <column name="ID_USUARIO"/>
+        </createIndex>
+
+        <addUniqueConstraint
+            tableName="PP_POKER_SESSION_PARTICIPANT"
+            columnNames="ID_SESSION, ID_USUARIO"
+            constraintName="uk_session_participant_session_user"/>
+    </changeSet>
+
+</databaseChangeLog>
+
+

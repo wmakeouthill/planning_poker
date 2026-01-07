@@ -79,4 +79,10 @@ public interface PokerSessionAPI {
             @Parameter(description = "Número da página (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Tamanho da página") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Filtro por status (opcional)") @RequestParam(required = false) SessionStatus status);
+
+    @Operation(summary = "Entra em uma sessão via código de convite")
+    @ApiResponse(responseCode = "200", description = "Entrada realizada com sucesso")
+    @PostMapping("/sessions/join/{inviteCode}")
+    ResponseEntity<JoinSessionResponseDTO> entrarPorInviteCode(
+            @Parameter(description = "Código de convite da sessão") @PathVariable String inviteCode);
 }

@@ -4,6 +4,8 @@ import com.planningpoker.dominio.entidade.Vote;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -15,4 +17,6 @@ public interface VoteRepository extends JpaRepository<Vote, Long> {
     Optional<Vote> findBySessionIdAndParticipantName(Long sessionId, String participantName);
 
     void deleteBySessionId(Long sessionId);
+
+    List<Vote> findBySessionIdIn(Collection<Long> sessionIds);
 }

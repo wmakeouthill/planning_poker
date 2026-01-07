@@ -22,25 +22,34 @@ public class ServicoStory {
 
     private final StoryRepository storyRepository;
     private final BoardRepository boardRepository;
+    private final UsuarioAutenticadoProvider usuarioAutenticadoProvider;
 
     @Transactional(readOnly = true)
     public List<Story> listarPorBoard(Long boardId) {
-        log.debug("Listando stories do board: {}", boardId);
+        var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
+        log.debug("Listando stories do board: {} (userId={})", boardId, usuario.getId());
+
+        // Garante que o board pertence ao usuário autenticado
+        boardRepository.findByIdAndOwnerId(boardId, usuario.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Board", boardId));
+
         return storyRepository.findByBoardIdOrderByCreatedAtDesc(boardId);
     }
 
     @Transactional(readOnly = true)
     public Story buscarPorId(Long id) {
-        log.debug("Buscando story por id: {}", id);
-        return storyRepository.findById(id)
+        var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
+        log.debug("Buscando story por id: {} (userId={})", id, usuario.getId());
+        return storyRepository.findByIdAndOwnerId(id, usuario.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Story", id));
     }
 
     @Transactional
     public Story criar(StoryDTO dto) {
         log.info("Criando nova story: {}", dto.title());
+        var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
 
-        var board = boardRepository.findById(dto.boardId())
+        var board = boardRepository.findByIdAndOwnerId(dto.boardId(), usuario.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Board", dto.boardId()));
 
         var story = new Story(dto.title(), dto.description());
@@ -71,7 +80,13 @@ public class ServicoStory {
 
     @Transactional(readOnly = true)
     public List<Story> listarNaoEstimadas() {
-        log.debug("Listando stories não estimadas");
-        return storyRepository.findByEstimatedPointsIsNull();
+        var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
+        log.debug("Listando stories não estimadas (userId={})", usuario.getId());
+
+        // Filtra manualmente: só stories dos boards do usuário
+        return storyRepository.findByEstimatedPointsIsNull().stream()
+                .filter(s -> s.getBoard() != null && s.getBoard().getOwner() != null
+                        && usuario.getId().equals(s.getBoard().getOwner().getId()))
+                .toList();
     }
 }

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="008-add-board-owner" author="planning-poker">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <tableExists tableName="PP_BOARD"/>
+                <tableExists tableName="pp_usuario"/>
+                <not>
+                    <columnExists tableName="PP_BOARD" columnName="ID_OWNER"/>
+                </not>
+            </and>
+        </preConditions>
+
+        <comment>Adiciona dono do board (usuário autenticado)</comment>
+
+        <addColumn tableName="PP_BOARD">
+            <column name="ID_OWNER" type="BIGINT"/>
+        </addColumn>
+
+        <createIndex tableName="PP_BOARD" indexName="idx_board_owner">
+            <column name="ID_OWNER"/>
+        </createIndex>
+
+        <addForeignKeyConstraint
+            baseTableName="PP_BOARD"
+            baseColumnNames="ID_OWNER"
+            constraintName="fk_board_owner_usuario"
+            referencedTableName="pp_usuario"
+            referencedColumnNames="id"
+            onDelete="SET NULL"/>
+    </changeSet>
+
+</databaseChangeLog>
+
+

@@ -1,0 +1,99 @@
+# Multi-stage build otimizado para Google Cloud Run
+# Stage 1: Build do Frontend Angular
+FROM node:22-alpine AS frontend-build
+
+WORKDIR /app/frontend
+
+# Build arguments para variáveis de ambiente do frontend
+# Essas variáveis são injetadas no BUILD TIME e usadas pelo Angular
+ARG GOOGLE_CLIENT_ID
+ARG NG_APP_API_URL
+
+# Expor como ENV para o Angular poder acessar
+ENV GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+ENV NG_APP_API_URL=${NG_APP_API_URL}
+ENV NG_APP_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+
+# Copiar package files
+COPY frontend/package*.json ./
+
+# Instalar dependências
+RUN npm ci
+
+# Copiar código fonte do frontend
+COPY frontend ./
+
+# Build do frontend (Angular 21 usa @ngx-env/builder que lê variáveis de ambiente)
+RUN npm run build
+
+# Stage 2: Build do Maven (com frontend já buildado)
+FROM maven:3.9-eclipse-temurin-21 AS maven-build
+
+WORKDIR /app
+
+# Copiar arquivos de configuração Maven primeiro (cache layer)
+COPY backend/pom.xml ./
+
+# Baixar dependências (cache layer)
+RUN mvn dependency:go-offline -B
+
+# Copiar código fonte do backend
+COPY backend/src ./src
+
+# Copiar frontend buildado para dentro do projeto (para ser incluído no JAR)
+COPY --from=frontend-build /app/frontend/dist/frontend/browser ./frontend/dist/frontend/browser
+
+# Build do backend COM frontend incluído no JAR
+# IMPORTANTE: 
+# 1. O frontend já está buildado no Stage 1 e copiado para frontend/dist/frontend/browser
+# 2. O plugin maven-resources-plugin copia o frontend para resources/static/ durante process-resources
+# 3. Manter skip.frontend.build=true para não tentar buildar novamente (já está buildado)
+RUN mvn clean package -DskipTests -B -Dskip.frontend.build=true
+
+# Stage 3: Imagem final otimizada para Cloud Run
+FROM eclipse-temurin:21-jre-alpine
+
+# Instalar apenas dependências necessárias (SEM MySQL - usando Cloud SQL)
+RUN apk add --no-cache \
+    bash \
+    tini \
+    && rm -rf /var/cache/apk/*
+
+# Criar diretório da aplicação
+RUN mkdir -p /app
+
+# Criar usuário não-root para segurança
+RUN addgroup -g 1001 appuser && \
+    adduser -D -u 1001 -G appuser appuser
+
+# Copiar JAR do backend (já contém o frontend dentro do JAR em classpath:/static/)
+COPY --from=maven-build /app/target/planning-poker-api-*.jar /app/app.jar
+
+# Ajustar permissões
+RUN chown -R appuser:appuser /app
+
+# Variáveis de ambiente padrão
+# IMPORTANTE: SPRING_DATASOURCE_PASSWORD, JWT_SECRET e GOOGLE_CLIENT_SECRET 
+# serão fornecidos via Secret Manager no Cloud Run
+ENV SERVER_PORT=8080
+ENV JWT_EXPIRATION=86400000
+ENV SPRING_JPA_SHOW_SQL=false
+ENV SPRING_PROFILES_ACTIVE=prod
+
+# Expor porta
+EXPOSE 8080
+
+# Mudar para usuário não-root
+USER appuser
+
+# Usar tini como init system
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Comando para iniciar a aplicação
+CMD ["java", \
+    "-Djava.security.egd=file:/dev/./urandom", \
+    "-XX:+UseContainerSupport", \
+    "-XX:MaxRAMPercentage=75.0", \
+    "-jar", \
+    "/app/app.jar"]
+

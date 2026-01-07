@@ -10,6 +10,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Entidade PokerSession - Representa uma sessão de votação de poker planning.
@@ -28,6 +29,9 @@ public class PokerSession implements Serializable {
 
     @Column(name = "TXT_NAME", length = 200)
     private String name;
+
+    @Column(name = "TXT_INVITE_CODE", length = 64, unique = true)
+    private String inviteCode;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "COD_STATUS", nullable = false)
@@ -49,6 +53,9 @@ public class PokerSession implements Serializable {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
+        if (this.inviteCode == null || this.inviteCode.isBlank()) {
+            this.inviteCode = UUID.randomUUID().toString().replace("-", "");
+        }
     }
 
     public PokerSession(String name) {

@@ -1,0 +1,12 @@
+<div class="invite-link">
+    <input class="invite-input" [value]="inviteUrl" readonly />
+    <button class="invite-btn" type="button" (click)="copy()">
+        @if (copied()) {
+        Copiado
+        } @else {
+        Copiar link
+        }
+    </button>
+</div>
+
+

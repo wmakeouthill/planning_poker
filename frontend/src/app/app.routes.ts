@@ -41,16 +41,28 @@ export const routes: Routes = [
             .then(m => m.BoardEditorComponent)
     },
     {
-        path: 'poker',
+        path: 'poker/history',
+        canActivate: [authGuard],
+        loadComponent: () => import('./features/poker/pages/session-history/session-history.component')
+            .then(m => m.SessionHistoryComponent)
+    },
+    {
+        path: 'poker/join/:inviteCode',
+        canActivate: [authGuard],
+        loadComponent: () => import('./features/poker/pages/poker-join/poker-join.component')
+            .then(m => m.PokerJoinComponent)
+    },
+    {
+        path: 'poker/:id',
         canActivate: [authGuard],
         loadComponent: () => import('./features/poker/pages/poker-room/poker-room.component')
             .then(m => m.PokerRoomComponent)
     },
     {
-        path: 'poker/history',
+        path: 'poker',
         canActivate: [authGuard],
-        loadComponent: () => import('./features/poker/pages/session-history/session-history.component')
-            .then(m => m.SessionHistoryComponent)
+        loadComponent: () => import('./features/poker/pages/poker-room/poker-room.component')
+            .then(m => m.PokerRoomComponent)
     },
     {
         path: '**',

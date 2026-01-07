@@ -1,0 +1,35 @@
+.invite-link {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.invite-input {
+    width: 320px;
+    max-width: 45vw;
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(15, 23, 42, 0.35);
+    color: #e2e8f0;
+    font-size: 0.875rem;
+}
+
+.invite-btn {
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid rgba(167, 139, 250, 0.6);
+    background: rgba(139, 92, 246, 0.25);
+    color: #f1f5f9;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.invite-btn:hover {
+    background: rgba(139, 92, 246, 0.35);
+    transform: translateY(-1px);
+}
+
+

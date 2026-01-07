@@ -53,41 +53,34 @@ export class BoardService {
     }
 
     criar(dto: CreateBoardDTO): Observable<Board> {
+        this.loading.set(true);
+        this.error.set(null);
+        
         return this.http.post<Board>(this.baseUrl, dto).pipe(
-            map((board) => {
-                // Garantir que o board seja válido
-                if (!board || !board.id) {
-                    // Se o board for inválido mas não for erro de conexão, retornar um board mock
-                    return {
-                        id: Date.now(), // ID temporário
-                        title: dto.title,
-                        description: dto.description || '',
-                        content: '',
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
-                    } as Board;
-                }
-                return board;
-            }),
-            tap((board) => {
-                // Só adicionar se o board for válido
-                if (board && board.id) {
-                    this.boards.update(boards => [board, ...boards]);
+            tap({
+                next: (board) => {
+                    // Só adicionar se o board for válido e tiver ID real do servidor
+                    if (board && board.id) {
+                        this.boards.update(boards => [board, ...boards]);
+                    }
+                    this.loading.set(false);
+                },
+                error: (err) => {
+                    this.loading.set(false);
+                    // Se for erro de conexão, mostrar mensagem específica
+                    if (err.status === 0 || err.status === 503) {
+                        this.error.set('Backend offline. Não foi possível criar o board.');
+                    } else {
+                        this.error.set('Erro ao criar board');
+                    }
                 }
             }),
             catchError((error: any) => {
-                // Se for erro de conexão, criar board local temporário
+                // Não criar board temporário - se backend está offline, não persiste mesmo
+                // Apenas retornar erro silenciosamente para não quebrar a aplicação
                 if (error.status === 0 || error.status === 503) {
-                    const tempBoard: Board = {
-                        id: Date.now(), // ID temporário
-                        title: dto.title,
-                        description: dto.description || '',
-                        content: '',
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
-                    };
-                    this.boards.update(boards => [tempBoard, ...boards]);
-                    return of(tempBoard);
+                    // Backend offline - não criar board temporário
+                    return of(null as any);
                 }
                 // Para outros erros, propagar
                 throw error;

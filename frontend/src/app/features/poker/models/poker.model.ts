@@ -4,6 +4,7 @@ export interface PokerSession {
     status: 'VOTING' | 'REVEALED' | 'CLOSED';
     storyId: number | null;
     storyTitle: string | null;
+    inviteCode?: string | null;
     votes: Vote[];
     averageVote: number | null;
     createdAt: string;

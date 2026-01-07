@@ -14,6 +14,7 @@ public record PokerSessionDTO(
         SessionStatus status,
         Long storyId,
         String storyTitle,
+        String inviteCode,
         List<VoteDTO> votes,
         Double averageVote,
         LocalDateTime createdAt,

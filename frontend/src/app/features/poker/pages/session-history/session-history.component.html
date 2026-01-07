@@ -72,7 +72,7 @@
                 
                 <div class="info-item">
                     <span class="info-label">Participantes:</span>
-                    <span class="info-value">{{ session.votes.length || 0 }}</span>
+                    <span class="info-value">{{ getTotalParticipantes(session) }}</span>
                 </div>
                 
                 @if (session.averageVote) {
@@ -82,6 +82,42 @@
                 </div>
                 }
             </div>
+            
+            <!-- Detalhes dos Votos (se revelados) -->
+            @if (session.status === 'REVEALED' || session.status === 'CLOSED') {
+            <div class="votes-section">
+                <h4 class="votes-title">Resultados da Votação</h4>
+                <div class="votes-grid">
+                    @for (vote of getVotosRevelados(session); track vote.id) {
+                    <div class="vote-item">
+                        <span class="vote-participant">{{ vote.participantName }}</span>
+                        <span class="vote-value">{{ vote.value || '?' }}</span>
+                    </div>
+                    }
+                </div>
+                
+                @if (session.averageVote) {
+                <div class="statistics">
+                    <div class="stat-item">
+                        <span class="stat-label">Média:</span>
+                        <span class="stat-value">{{ session.averageVote.toFixed(1) }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Mínimo:</span>
+                        <span class="stat-value">{{ getVotoMinimo(session) }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Máximo:</span>
+                        <span class="stat-value">{{ getVotoMaximo(session) }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Consenso:</span>
+                        <span class="stat-value">{{ getConsenso(session) }}</span>
+                    </div>
+                </div>
+                }
+            </div>
+            }
         </div>
         }
     </div>

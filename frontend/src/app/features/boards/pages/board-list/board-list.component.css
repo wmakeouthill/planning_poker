@@ -1,13 +1,17 @@
 .board-list-page {
     max-width: 1400px;
     margin: 0 auto;
+    padding: 2.5rem 3rem;
+    padding-left: 4rem; /* Mais espaço da sidebar */
 }
 
 .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
+    gap: 2rem;
+    padding-right: 1rem; /* Espaço extra para o botão */
 }
 
 .page-title {
@@ -289,6 +293,25 @@ textarea.input-glass {
     min-height: 80px;
 }
 
+.error-message {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    color: #fca5a5;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.error-message svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
 .modal-footer {
     display: flex;
     justify-content: flex-end;
@@ -297,11 +320,24 @@ textarea.input-glass {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
+    .board-list-page {
+        padding: 1.5rem 2rem;
+        padding-left: 3rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .board-list-page {
+        padding: 1rem 1.5rem;
+        padding-left: 2rem;
+    }
+    
     .page-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 1rem;
+        padding-right: 0;
     }
 
     .board-grid {

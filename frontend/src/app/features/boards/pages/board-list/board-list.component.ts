@@ -15,6 +15,7 @@ export class BoardListComponent implements OnInit {
 
     readonly boards = this.boardService.boards;
     readonly loading = this.boardService.loading;
+    readonly error = this.boardService.error;
     readonly showCreateModal = signal(false);
     readonly newBoardTitle = signal('');
     readonly newBoardDescription = signal('');
@@ -40,8 +41,15 @@ export class BoardListComponent implements OnInit {
         if (!title.trim()) return;
 
         this.boardService.criar({ title, description }).subscribe({
-            next: () => {
-                this.closeCreateModal();
+            next: (board) => {
+                // Só fechar modal se o board foi criado com sucesso
+                if (board && board.id) {
+                    this.closeCreateModal();
+                }
+            },
+            error: () => {
+                // Erro já está sendo tratado no serviço
+                // Modal permanece aberto para o usuário tentar novamente
             }
         });
     }

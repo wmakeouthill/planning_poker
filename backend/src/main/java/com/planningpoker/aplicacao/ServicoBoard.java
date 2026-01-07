@@ -20,26 +20,31 @@ import java.util.List;
 public class ServicoBoard {
 
     private final BoardRepository boardRepository;
+    private final UsuarioAutenticadoProvider usuarioAutenticadoProvider;
 
     @Transactional(readOnly = true)
     public List<Board> listarTodos() {
-        log.debug("Listando todos os boards");
-        return boardRepository.findAllByOrderByUpdatedAtDesc();
+        var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
+        log.debug("Listando boards do usuário {}", usuario.getId());
+        return boardRepository.findByOwnerIdOrderByUpdatedAtDesc(usuario.getId());
     }
 
     @Transactional(readOnly = true)
     public Board buscarPorId(Long id) {
-        log.debug("Buscando board por id: {}", id);
-        return boardRepository.findById(id)
+        var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
+        log.debug("Buscando board por id: {} (userId={})", id, usuario.getId());
+        return boardRepository.findByIdAndOwnerId(id, usuario.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Board", id));
     }
 
     @Transactional
     public Board criar(BoardDTO dto) {
         log.info("Criando novo board: {}", dto.title());
+        var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
 
         var board = new Board(dto.title(), dto.description());
         board.setContent(dto.content());
+        board.setOwner(usuario);
 
         return boardRepository.save(board);
     }
@@ -66,7 +71,8 @@ public class ServicoBoard {
 
     @Transactional(readOnly = true)
     public List<Board> pesquisar(String termo) {
-        log.debug("Pesquisando boards por termo: {}", termo);
-        return boardRepository.findByTitleContainingIgnoreCase(termo);
+        var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
+        log.debug("Pesquisando boards por termo: {} (userId={})", termo, usuario.getId());
+        return boardRepository.findByOwnerIdAndTitleContainingIgnoreCase(usuario.getId(), termo);
     }
 }

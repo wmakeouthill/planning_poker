@@ -1,0 +1,16 @@
+<div class="poker-join-page fade-in">
+    @if (loading()) {
+    <div class="state">
+        <div class="spinner"></div>
+        <p>Entrando na sessão...</p>
+    </div>
+    } @else if (error()) {
+    <div class="state">
+        <h2>Ops</h2>
+        <p>{{ error() }}</p>
+        <a class="btn" routerLink="/poker">Voltar</a>
+    </div>
+    }
+</div>
+
+

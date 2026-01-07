@@ -23,6 +23,9 @@
         </div>
 
         <div class="header-actions">
+            @if (inviteUrl()) {
+            <app-invite-link [inviteUrl]="inviteUrl()!" />
+            }
             @if (participantName()) {
             <span class="participant-badge">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

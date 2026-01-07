@@ -74,4 +74,9 @@ public class PokerSessionController implements PokerSessionAPI {
     public ResponseEntity<PageResponseDTO<PokerSessionDTO>> listarHistorico(int page, int size, SessionStatus status) {
         return ResponseEntity.ok(servicoPokerSession.listarHistorico(page, size, status));
     }
+
+    @Override
+    public ResponseEntity<JoinSessionResponseDTO> entrarPorInviteCode(String inviteCode) {
+        return ResponseEntity.ok(servicoPokerSession.entrarPorInviteCode(inviteCode));
+    }
 }

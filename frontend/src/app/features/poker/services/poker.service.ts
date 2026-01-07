@@ -3,6 +3,10 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, tap, interval, switchMap, takeWhile, catchError, of, map } from 'rxjs';
 import { PokerSession, Vote, CreateSessionDTO, VoteRequestDTO, PageResponse } from '../models/poker.model';
 
+export interface JoinSessionResponseDTO {
+    sessionId: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PokerService {
     private readonly http = inject(HttpClient);
@@ -33,6 +37,10 @@ export class PokerService {
                 }
             })
         );
+    }
+
+    entrarPorInviteCode(inviteCode: string): Observable<JoinSessionResponseDTO> {
+        return this.http.post<JoinSessionResponseDTO>(`${this.baseUrl}/sessions/join/${inviteCode}`, {});
     }
 
     buscarSessao(id: number): Observable<PokerSession> {
@@ -72,6 +80,7 @@ export class PokerService {
                         status: session.status,
                         storyId: session.storyId || null,
                         storyTitle: session.storyTitle || null,
+                        inviteCode: session.inviteCode || null,
                         votes: session.votes || [],
                         averageVote: session.averageVote || null,
                         createdAt: session.createdAt,

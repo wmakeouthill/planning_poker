@@ -46,6 +46,14 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Cloud SQL Socket Factory (para conectar ao Cloud SQL via Cloud Run) -->
+        <dependency>
+            <groupId>com.google.cloud.sql</groupId>
+            <artifactId>mysql-socket-factory-connector-j-8</artifactId>
+            <version>1.13.1</version>
+            <scope>runtime</scope>
+        </dependency>
+
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
@@ -166,6 +174,38 @@
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
+            </plugin>
+
+            <!-- Copiar arquivos buildados do frontend para resources/static -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-frontend</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <!-- Angular 21 gera em dist/frontend/browser -->
+                                    <!-- No Docker, o frontend será copiado para frontend/dist/frontend/browser -->
+                                    <directory>${project.basedir}/../frontend/dist/frontend/browser</directory>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                            <!-- IMPORTANTE: NUNCA pular a cópia do frontend!
+                                 Este plugin apenas COPIA os arquivos já buildados.
+                                 No Docker, o frontend já foi buildado no Stage 1 e precisa ser copiado aqui.
+                            -->
+                            <skip>false</skip>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

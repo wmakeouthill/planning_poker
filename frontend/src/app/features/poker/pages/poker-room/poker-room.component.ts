@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, OnDestroy, signal, computed, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { PokerService } from '../../services/poker.service';
 import { PokerWebSocketService } from '../../services/poker-websocket.service';
 import { POKER_VALUES, PokerValue } from '../../models/poker.model';
@@ -7,6 +8,7 @@ import { ParticipantCardComponent } from '../../components/participant-card/part
 import { MasterPanelComponent } from '../../components/master-panel/master-panel.component';
 import { TableCenterComponent } from '../../components/table-center/table-center.component';
 import { VoteAnimationComponent } from '../../components/vote-animation/vote-animation.component';
+import { InviteLinkComponent } from '../../components/invite-link/invite-link.component';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -17,7 +19,8 @@ import { Subscription } from 'rxjs';
         ParticipantCardComponent,
         MasterPanelComponent,
         TableCenterComponent,
-        VoteAnimationComponent
+        VoteAnimationComponent,
+        InviteLinkComponent
     ],
     templateUrl: './poker-room.component.html',
     styleUrl: './poker-room.component.css'
@@ -25,12 +28,20 @@ import { Subscription } from 'rxjs';
 export class PokerRoomComponent implements OnInit, OnDestroy {
     private readonly pokerService = inject(PokerService);
     private readonly wsService = inject(PokerWebSocketService);
+    private readonly route = inject(ActivatedRoute);
+    private readonly router = inject(Router);
     private pollingSubscription?: Subscription;
 
     readonly POKER_VALUES = POKER_VALUES;
     readonly session = this.pokerService.currentSession;
     readonly participantName = this.pokerService.participantName;
     readonly loading = this.pokerService.loading;
+
+    readonly inviteUrl = computed(() => {
+        const session = this.session();
+        const code = session?.inviteCode;
+        return code ? `${window.location.origin}/poker/join/${code}` : null;
+    });
 
     readonly selectedCard = signal<PokerValue | null>(null);
     readonly showJoinModal = signal(false);
@@ -102,11 +113,67 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
     ngOnInit() {
         this.pokerService.loadParticipantName();
 
+        // Verificar se há um ID na rota
+        const sessionId = this.route.snapshot.paramMap.get('id');
+        
+        if (sessionId) {
+            // Carregar sessão específica pelo ID
+            this.carregarSessaoPorId(Number(sessionId));
+        } else {
+            // Comportamento padrão: buscar sessão ativa
+            this.carregarSessaoAtiva();
+        }
+    }
+
+    private carregarSessaoPorId(sessionId: number): void {
+        // Se não tem nome, mostrar modal
+        if (!this.participantName()) {
+            this.showJoinModal.set(true);
+            // Quando o usuário entrar, carregar a sessão
+            return;
+        }
+
+        // Carregar sessão imediatamente para mostrar o link de convite
+        this.pokerService.buscarSessao(sessionId).subscribe({
+            next: (session) => {
+                // A sessão já foi atualizada no serviço, então o inviteUrl já deve estar disponível
+                const name = this.participantName();
+                // Verificar se o participante já está na sessão
+                const isInSession = session.votes.some(v => v.participantName === name);
+                if (!isInSession && name) {
+                    // Criar voto vazio para o participante aparecer na mesa
+                    this.pokerService.votar({
+                        sessionId: session.id,
+                        participantName: name,
+                        value: ''
+                    }).subscribe({
+                        next: () => {
+                            this.startPolling(session.id);
+                        },
+                        error: () => {
+                            // Se falhar ao votar, ainda tenta iniciar polling
+                            this.startPolling(session.id);
+                        }
+                    });
+                } else {
+                    this.startPolling(session.id);
+                }
+            },
+            error: (error) => {
+                console.error('Erro ao carregar sessão:', error);
+                // Redirecionar para a página de poker se a sessão não for encontrada
+                this.router.navigate(['/poker']);
+            }
+        });
+    }
+
+    private carregarSessaoAtiva(): void {
         // Se não tem nome, mostrar modal
         if (!this.participantName()) {
             this.showJoinModal.set(true);
         } else {
             // Buscar sessão ativa e iniciar polling
+            // A sessão já será atualizada no serviço, então o inviteUrl já deve estar disponível
             this.pokerService.buscarSessaoAtiva().subscribe({
                 next: (session) => {
                     if (session) {
@@ -150,22 +217,32 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
 
         this.pokerService.setParticipantName(name);
         this.showJoinModal.set(false);
-        this.pokerService.buscarSessaoAtiva().subscribe({
-            next: (session) => {
-                if (session) {
-                    // Criar voto vazio para o participante aparecer na mesa
-                    this.pokerService.votar({
-                        sessionId: session.id,
-                        participantName: name,
-                        value: ''
-                    }).subscribe({
-                        next: () => {
-                            this.startPolling(session.id);
-                        }
-                    });
+        
+        // Verificar se há um ID na rota
+        const sessionId = this.route.snapshot.paramMap.get('id');
+        
+        if (sessionId) {
+            // Carregar sessão específica pelo ID
+            this.carregarSessaoPorId(Number(sessionId));
+        } else {
+            // Buscar sessão ativa
+            this.pokerService.buscarSessaoAtiva().subscribe({
+                next: (session) => {
+                    if (session) {
+                        // Criar voto vazio para o participante aparecer na mesa
+                        this.pokerService.votar({
+                            sessionId: session.id,
+                            participantName: name,
+                            value: ''
+                        }).subscribe({
+                            next: () => {
+                                this.startPolling(session.id);
+                            }
+                        });
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     openCreateModal() {

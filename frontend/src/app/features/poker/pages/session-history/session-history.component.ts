@@ -2,7 +2,7 @@ import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { PokerService } from '../../services/poker.service';
-import { PokerSession } from '../../models/poker.model';
+import { PokerSession, Vote } from '../../models/poker.model';
 
 /**
  * Componente Smart para exibir histórico de sessões de poker.
@@ -102,6 +102,70 @@ export class SessionHistoryComponent implements OnInit {
             'CLOSED': 'status-closed'
         };
         return classes[status] || '';
+    }
+
+    getTotalParticipantes(session: PokerSession): number {
+        return session.votes?.length || 0;
+    }
+
+    getVotosRevelados(session: PokerSession): Vote[] {
+        if (!session.votes) return [];
+        // Se a sessão está revelada ou fechada, mostra todos os votos que foram dados
+        if (session.status === 'REVEALED' || session.status === 'CLOSED') {
+            return session.votes.filter(v => v.hasVoted && v.value && v.value.trim() !== '');
+        }
+        return [];
+    }
+
+    getVotoMinimo(session: PokerSession): string {
+        const votos = this.getVotosRevelados(session)
+            .map(v => this.parseVoteValue(v.value))
+            .filter(v => v !== null && !isNaN(v)) as number[];
+        
+        if (votos.length === 0) return '-';
+        const min = Math.min(...votos);
+        return min === 0.5 ? '½' : min.toString();
+    }
+
+    getVotoMaximo(session: PokerSession): string {
+        const votos = this.getVotosRevelados(session)
+            .map(v => this.parseVoteValue(v.value))
+            .filter(v => v !== null && !isNaN(v)) as number[];
+        
+        if (votos.length === 0) return '-';
+        const max = Math.max(...votos);
+        return max === 0.5 ? '½' : max.toString();
+    }
+
+    getConsenso(session: PokerSession): string {
+        const votos = this.getVotosRevelados(session)
+            .map(v => v.value)
+            .filter(v => v && v.trim() !== '' && v !== '?' && v !== '☕');
+        
+        if (votos.length === 0) return 'N/A';
+        
+        const valoresUnicos = new Set(votos);
+        if (valoresUnicos.size === 1) {
+            return 'Sim';
+        }
+        
+        // Verifica se há consenso (80% ou mais votaram o mesmo valor)
+        const contagem: Record<string, number> = {};
+        votos.forEach(v => {
+            contagem[v] = (contagem[v] || 0) + 1;
+        });
+        
+        const maxCount = Math.max(...Object.values(contagem));
+        const porcentagem = (maxCount / votos.length) * 100;
+        
+        return porcentagem >= 80 ? 'Sim' : 'Não';
+    }
+
+    private parseVoteValue(value: string | null | undefined): number | null {
+        if (!value || value === '?' || value === '☕') return null;
+        if (value === '½') return 0.5;
+        const num = parseFloat(value);
+        return isNaN(num) ? null : num;
     }
 }
 
