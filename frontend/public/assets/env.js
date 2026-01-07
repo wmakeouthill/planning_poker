@@ -1,12 +1,16 @@
 // Runtime environment configuration
-// Configure your Google Client ID here for local development
+// Em produção, usa URLs relativas. Em desenvolvimento, usa localhost.
 (function (window) {
     window.__env = window.__env || {};
 
-    // API URL
-    window.__env.apiUrl = 'http://localhost:8080/api';
+    // Detectar se está em produção (não é localhost)
+    var isProduction = window.location.hostname !== 'localhost' && 
+                       window.location.hostname !== '127.0.0.1';
 
-    // Google Client ID - CONFIGURE AQUI
+    // API URL - Em produção usa caminho relativo, em dev usa localhost
+    window.__env.apiUrl = isProduction ? '/api' : 'http://localhost:8080/api';
+
+    // Google Client ID
     window.__env.googleClientId = '385827294764-ns6i99hvsiu9muvmjrj6rbgjv26sba5g.apps.googleusercontent.com';
 
 }(this));
