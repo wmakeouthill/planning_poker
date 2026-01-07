@@ -37,7 +37,10 @@ public class SecurityConfig {
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Arquivos estáticos do frontend (em produção)
-                        .requestMatchers("/", "/index.html", "/*.js", "/*.css", "/*.ico", "/*.png", "/*.jpg", "/*.svg", "/assets/**").permitAll()
+                        // IMPORTANTE: Usar padrões corretos - /*.ext para raiz, /**/*.ext para subdiretórios
+                        .requestMatchers("/", "/index.html", "/*.js", "/*.css", "/*.ico", "/*.png", "/*.jpg",
+                                "/*.svg", "/*.woff", "/*.woff2", "/*.ttf", "/assets/**", "/chunk-*.js")
+                        .permitAll()
                         // Demais endpoints requerem autenticação
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

@@ -54,9 +54,45 @@ gcloud services enable \
     sqladmin.googleapis.com \
     --project="$PROJECT_ID"
 
+# Função para ler variáveis do arquivo .env
+read_env_file() {
+    local file_path="${1:-.env}"
+    declare -A env_vars
+    
+    if [ -f "$file_path" ]; then
+        echo -e "${GREEN}📄 Lendo variáveis do arquivo .env...${NC}"
+        while IFS='=' read -r key value || [ -n "$key" ]; do
+            # Ignorar comentários e linhas vazias
+            [[ "$key" =~ ^[[:space:]]*# ]] && continue
+            [[ -z "$key" ]] && continue
+            
+            # Remover espaços e aspas
+            key=$(echo "$key" | xargs)
+            value=$(echo "$value" | xargs | sed "s/^['\"]//; s/['\"]$//")
+            
+            if [ -n "$key" ] && [ -n "$value" ]; then
+                env_vars["$key"]="$value"
+            fi
+        done < <(grep -v '^[[:space:]]*#' "$file_path" | grep '=')
+    else
+        echo -e "${YELLOW}⚠️  Arquivo .env não encontrado. Usando apenas secrets existentes.${NC}"
+    fi
+    
+    # Retornar via variável global (bash não retorna arrays facilmente)
+    for key in "${!env_vars[@]}"; do
+        export "ENV_${key}=${env_vars[$key]}"
+    done
+}
+
+# Ler variáveis do .env ANTES de usar
+read_env_file
+
 # Verificar Cloud SQL Instance
 echo ""
 echo -e "${GREEN}🗄️  Configurando Cloud SQL...${NC}"
+echo -e "${GREEN}   ℹ️  Usando a MESMA instância Cloud SQL do projeto de referência${NC}"
+echo -e "${GREEN}   ℹ️  Mas com um banco de dados PRÓPRIO (planningpoker)${NC}"
+echo ""
 
 if [ -z "$3" ]; then
     echo -e "${YELLOW}📋 Instâncias Cloud SQL disponíveis:${NC}"
@@ -90,11 +126,74 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
     --quiet || echo -e "${YELLOW}⚠️  Permissão já configurada (continuando...)${NC}"
 
 # Solicitar informações do banco
+echo ""
+echo -e "${GREEN}💾 Configurando banco de dados...${NC}"
+echo -e "${GREEN}   ℹ️  Será criado um banco de dados PRÓPRIO nesta instância Cloud SQL${NC}"
+echo ""
+
 read -p "Digite o nome do banco de dados (default: planningpoker): " DB_NAME
 DB_NAME=${DB_NAME:-planningpoker}
 
 read -p "Digite o usuário do banco de dados (default: planningpoker_user): " DB_USERNAME
 DB_USERNAME=${DB_USERNAME:-planningpoker_user}
+
+# Extrair apenas o nome da instância (sem PROJECT_ID:REGION:)
+INSTANCE_NAME_ONLY="$CLOUD_SQL_CONNECTION_NAME"
+if [[ "$CLOUD_SQL_CONNECTION_NAME" == *":"* ]]; then
+    INSTANCE_NAME_ONLY=$(echo "$CLOUD_SQL_CONNECTION_NAME" | cut -d':' -f3)
+fi
+
+# Verificar se o banco de dados existe, se não, criar
+echo ""
+echo -e "${GREEN}🔍 Verificando banco de dados '${DB_NAME}'...${NC}"
+DB_EXISTS=$(gcloud sql databases list --instance="$INSTANCE_NAME_ONLY" --project="$PROJECT_ID" --format="value(name)" 2>/dev/null | grep -Fx "$DB_NAME" || echo "")
+
+if [ -z "$DB_EXISTS" ]; then
+    echo -e "${YELLOW}📝 Banco de dados '${DB_NAME}' não existe. Criando...${NC}"
+    if gcloud sql databases create "$DB_NAME" --instance="$INSTANCE_NAME_ONLY" --project="$PROJECT_ID" 2>/dev/null; then
+        echo -e "${GREEN}✅ Banco de dados '${DB_NAME}' criado com sucesso${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Erro ao criar banco de dados. Pode já existir ou você precisa criar manualmente.${NC}"
+    fi
+else
+    echo -e "${GREEN}✅ Banco de dados '${DB_NAME}' já existe${NC}"
+fi
+
+# Verificar se o usuário existe, se não, criar
+echo ""
+echo -e "${GREEN}🔍 Verificando usuário '${DB_USERNAME}'...${NC}"
+USER_EXISTS=$(gcloud sql users list --instance="$INSTANCE_NAME_ONLY" --project="$PROJECT_ID" --format="value(name)" 2>/dev/null | grep -Fx "$DB_USERNAME" || echo "")
+
+if [ -z "$USER_EXISTS" ]; then
+    echo -e "${YELLOW}📝 Usuário '${DB_USERNAME}' não existe. Criando...${NC}"
+    echo -e "${GREEN}   ℹ️  Será necessário informar a senha do usuário${NC}"
+    
+    # Tentar obter senha do .env primeiro
+    USER_PASSWORD=""
+    if [ -n "${ENV_MYSQL_PASSWORD}" ]; then
+        read -p "Usar senha do .env (MYSQL_PASSWORD)? (S/n): " USE_ENV_PASSWORD
+        if [ "$USE_ENV_PASSWORD" != "n" ] && [ "$USE_ENV_PASSWORD" != "N" ]; then
+            USER_PASSWORD="${ENV_MYSQL_PASSWORD}"
+        fi
+    fi
+    
+    if [ -z "$USER_PASSWORD" ]; then
+        read -sp "Digite a senha para o usuário '${DB_USERNAME}': " USER_PASSWORD
+        echo ""
+    fi
+    
+    if [ -n "$USER_PASSWORD" ]; then
+        if gcloud sql users create "$DB_USERNAME" --instance="$INSTANCE_NAME_ONLY" --password="$USER_PASSWORD" --project="$PROJECT_ID" 2>/dev/null; then
+            echo -e "${GREEN}✅ Usuário '${DB_USERNAME}' criado com sucesso${NC}"
+        else
+            echo -e "${YELLOW}⚠️  Erro ao criar usuário. Pode já existir ou você precisa criar manualmente.${NC}"
+        fi
+    else
+        echo -e "${YELLOW}⚠️  Senha vazia. Pulando criação do usuário.${NC}"
+    fi
+else
+    echo -e "${GREEN}✅ Usuário '${DB_USERNAME}' já existe${NC}"
+fi
 
 # Construir DB_URL para Cloud SQL
 DB_URL="jdbc:mysql:///${DB_NAME}?cloudSqlInstance=${CLOUD_SQL_CONNECTION_NAME}&socketFactory=com.google.cloud.sql.mysql.SocketFactory&useSSL=false&serverTimezone=America/Sao_Paulo"
@@ -140,7 +239,12 @@ for secret in "${REQUIRED_SECRETS[@]}"; do
 done
 
 # Obter Google Client ID do secret (para usar como variável de ambiente)
-GOOGLE_CLIENT_ID=$(gcloud secrets versions access latest --secret="google-client-id" --project="$PROJECT_ID")
+# Se não conseguir do secret, tentar do .env
+GOOGLE_CLIENT_ID=$(gcloud secrets versions access latest --secret="google-client-id" --project="$PROJECT_ID" 2>/dev/null)
+if [ -z "$GOOGLE_CLIENT_ID" ] && [ -n "${ENV_GOOGLE_CLIENT_ID}" ]; then
+    GOOGLE_CLIENT_ID="${ENV_GOOGLE_CLIENT_ID}"
+    echo -e "${YELLOW}⚠️  Usando GOOGLE_CLIENT_ID do .env (secret não encontrado)${NC}"
+fi
 
 # Imagem a ser usada
 IMAGE_NAME="gcr.io/${PROJECT_ID}/planning-poker:latest"

@@ -40,8 +40,9 @@ RUN mvn dependency:go-offline -B
 # Copiar código fonte do backend
 COPY backend/src ./src
 
-# Copiar frontend buildado para dentro do projeto (para ser incluído no JAR)
-COPY --from=frontend-build /app/frontend/dist/frontend/browser ./frontend/dist/frontend/browser
+# Copiar frontend buildado para o caminho esperado pelo pom.xml (../frontend)
+# pom.xml procura em ${project.basedir}/../frontend, e como basedir é /app, procura em /frontend
+COPY --from=frontend-build /app/frontend/dist/frontend/browser /frontend/dist/frontend/browser
 
 # Build do backend COM frontend incluído no JAR
 # IMPORTANTE: 

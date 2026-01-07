@@ -145,9 +145,24 @@ gcloud secrets add-iam-policy-binding google-client-id \
 
 ## 🗄️ Configuração do Cloud SQL
 
-### Usar o Mesmo Cloud SQL
+### ✅ Usar o Mesmo Cloud SQL (Recomendado)
 
-Para usar o mesmo Cloud SQL do projeto de referência:
+**IMPORTANTE**: O script `deploy-cloud-run.ps1` está configurado para usar a **MESMA instância Cloud SQL** do projeto de referência (`Experimenta_ai_soneca_delivery`), mas com um **banco de dados PRÓPRIO** (`planningpoker`).
+
+**Vantagens:**
+- ✅ Economia de custos (uma instância para múltiplos projetos)
+- ✅ Facilita gerenciamento
+- ✅ Isolamento de dados (cada projeto tem seu próprio banco)
+
+**O script faz automaticamente:**
+- ✅ Verifica se o banco de dados `planningpoker` existe
+- ✅ Cria o banco de dados se não existir
+- ✅ Verifica se o usuário `planningpoker_user` existe
+- ✅ Cria o usuário se não existir (solicita senha)
+
+### Configuração Manual (se necessário)
+
+Para usar o mesmo Cloud SQL do projeto de referência manualmente:
 
 1. **Obter o Connection Name**:
    ```bash
@@ -158,20 +173,22 @@ Para usar o mesmo Cloud SQL do projeto de referência:
    # Exemplo: meu-projeto:us-central1:minha-instancia
    ```
 
-2. **Criar Banco de Dados** (se ainda não existir):
+2. **Criar Banco de Dados** (o script faz isso automaticamente, mas você pode fazer manualmente):
    ```bash
    gcloud sql databases create planningpoker \
        --instance="NOME_DA_INSTANCIA" \
        --project="SEU_PROJECT_ID"
    ```
 
-3. **Criar Usuário** (se ainda não existir):
+3. **Criar Usuário** (o script faz isso automaticamente, mas você pode fazer manualmente):
    ```bash
    gcloud sql users create planningpoker_user \
        --instance="NOME_DA_INSTANCIA" \
        --password="SENHA_FORTE" \
        --project="SEU_PROJECT_ID"
    ```
+
+**NOTA**: O script `deploy-cloud-run.ps1` faz isso automaticamente! Você só precisa informar o nome da instância Cloud SQL quando solicitado.
 
 4. **Conceder Permissões do Cloud Run ao Cloud SQL**:
    ```bash
@@ -229,7 +246,21 @@ gcloud run deploy planning-poker \
 
 ## 🔐 Secrets Necessários no Secret Manager
 
-**IMPORTANTE**: Você DEVE criar os seguintes secrets no Google Cloud Secret Manager antes de fazer o deploy:
+**IMPORTANTE**: Os secrets podem ser criados de duas formas:
+
+1. **Automaticamente** (recomendado): O script `deploy-cloud-run.ps1` lê o arquivo `.env` e cria os secrets automaticamente
+2. **Manualmente**: Use os comandos abaixo para criar os secrets manualmente
+
+### Mapeamento de Variáveis do .env para Secrets
+
+| Variável no .env | Secret no GCP | Descrição |
+|------------------|---------------|-----------|
+| `MYSQL_PASSWORD` | `db-password` | Senha do banco de dados |
+| `JWT_SECRET` | `jwt-secret` | Chave secreta JWT |
+| `GOOGLE_CLIENT_SECRET` | `google-client-secret` | Client Secret do Google OAuth |
+| `GOOGLE_CLIENT_ID` | `google-client-id` | Client ID do Google OAuth |
+
+### Criar Secrets Manualmente (se necessário)
 
 ### Secrets do Backend (Runtime)
 
@@ -288,7 +319,48 @@ gcloud secrets describe google-client-id --project="SEU_PROJECT_ID"
 
 ## 🚀 Deploy Rápido
 
-### Opção 1: Usando Cloud Build (Recomendado)
+### ⚡ Opção Recomendada: Script Automatizado (PowerShell - Windows)
+
+**⚠️ No Windows, use PowerShell (não Git Bash!)** O script `deploy-cloud-run.ps1` faz **tudo automaticamente**:
+
+✅ **Ativa as APIs necessárias**  
+✅ **Lê secrets do arquivo `.env` e cria automaticamente no Secret Manager**  
+✅ **Configura permissões do Cloud SQL e Secret Manager**  
+✅ **Faz o deploy no Cloud Run**
+
+**Como usar:**
+
+```powershell
+# Modo interativo (solicita todas as informações)
+.\deploy-cloud-run.ps1
+
+# Com parâmetros
+.\deploy-cloud-run.ps1 -ProjectId "meu-projeto" -Region "us-central1" -CloudSqlInstance "minha-instancia"
+
+# Apenas ProjectId (resto interativo)
+.\deploy-cloud-run.ps1 -ProjectId "meu-projeto"
+```
+
+**📝 Preparação do arquivo `.env`:**
+
+Antes de executar o script, certifique-se de que seu arquivo `.env` contém as seguintes variáveis:
+
+```env
+# Secrets do Backend
+MYSQL_PASSWORD=sua-senha-do-banco
+JWT_SECRET=sua-chave-jwt-secreta-minimo-32-caracteres
+GOOGLE_CLIENT_SECRET=seu-google-client-secret
+
+# Secrets do Frontend
+GOOGLE_CLIENT_ID=seu-google-client-id
+```
+
+O script irá:
+- Ler essas variáveis do `.env`
+- Criar os secrets automaticamente no Secret Manager (se não existirem)
+- Usar os secrets existentes (se já existirem)
+
+### Opção 2: Usando Cloud Build (CI/CD)
 
 ```bash
 # Configurar variáveis de substituição
@@ -296,8 +368,7 @@ gcloud builds submit --config=cloudbuild.yaml \
   --substitutions=_CLOUD_SQL_CONNECTION_NAME="PROJECT_ID:REGION:INSTANCE",_DB_NAME="planningpoker",_DB_USERNAME="planningpoker_user"
 ```
 
-### Opção 2: Usando Script de Deploy
-
+**Bash (Linux/Mac):**
 ```bash
 # Dar permissão de execução
 chmod +x deploy-cloud-run.sh
@@ -314,7 +385,8 @@ Veja a seção "Exemplo de Deploy no Cloud Run" acima.
 
 - **`Dockerfile.cloud-run`** - Multi-stage build para produção (frontend + backend)
 - **`cloudbuild.yaml`** - Configuração do Cloud Build para CI/CD
-- **`deploy-cloud-run.sh`** - Script de deploy automatizado
+- **`deploy-cloud-run.ps1`** - Script de deploy automatizado (PowerShell - Windows)
+- **`deploy-cloud-run.sh`** - Script de deploy automatizado (Bash - Linux/Mac)
 - **`DEPLOY_CLOUD_RUN.md`** - Esta documentação
 
 ## 📚 Referências
