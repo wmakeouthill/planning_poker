@@ -4,7 +4,7 @@
 
 param(
     [string]$ProjectId = "planning-poker-483523",
-    [string]$Region = "us-central1"
+    [string]$Region = "southamerica-east1"
 )
 
 $ErrorActionPreference = "Continue"
@@ -18,7 +18,7 @@ function Write-ColorOutput {
 $CloudSqlConnection = "experimenta-ai-soneca-balcao:southamerica-east1:experimenta-ai-balcao"
 $DbName = "planningpoker"
 $DbUsername = "root"
-$Registry = "us-central1-docker.pkg.dev"
+$Registry = "southamerica-east1-docker.pkg.dev"
 $ImageName = "$Registry/$ProjectId/planning-poker/app"
 $ImageTag = "latest"
 $FullImageName = "${ImageName}:${ImageTag}"

@@ -11,9 +11,9 @@ steps:
       - '--build-arg'
       - 'NG_APP_API_URL=${_NG_APP_API_URL}'
       - '-t'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:$BUILD_ID'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:$BUILD_ID'
       - '-t'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:latest'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:latest'
       - '.'
     timeout: '1800s'
 
@@ -21,12 +21,12 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:$BUILD_ID'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:$BUILD_ID'
 
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:latest'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:latest'
 
   # Deploy no Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -36,7 +36,7 @@ steps:
       - 'deploy'
       - 'planning-poker'
       - '--image'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:$BUILD_ID'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:$BUILD_ID'
       - '--region'
       - '${_REGION}'
       - '--platform'
@@ -68,11 +68,11 @@ options:
 timeout: '2400s'
 
 images:
-  - 'us-central1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:$BUILD_ID'
-  - 'us-central1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:latest'
+  - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:$BUILD_ID'
+  - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:latest'
 
 substitutions:
-  _REGION: 'us-central1'
+  _REGION: 'southamerica-east1'
   _CLOUD_SQL_CONNECTION: 'experimenta-ai-soneca-balcao:southamerica-east1:experimenta-ai-balcao'
   _DB_NAME: 'planningpoker'
   _DB_USERNAME: 'planningpoker_user'
