@@ -1,9 +1,35 @@
 <div class="emoji-carousel">
+    <!-- Dropdown de categorias -->
+    <div class="category-dropdown">
+        <button class="category-btn" (click)="toggleDropdown()">
+            Categorias
+            <span class="arrow">▼</span>
+        </button>
+
+        @if (showDropdown()) {
+        <div class="dropdown-content" (mouseleave)="closeDropdown()">
+            @for (category of categories; track category.name) {
+            <div class="category-section">
+                <span class="category-name">{{ category.name }}</span>
+                <div class="category-emojis">
+                    @for (emoji of category.emojis; track emoji) {
+                    <button class="emoji-btn" [class.selected]="emoji === selectedEmoji" (click)="selectEmoji(emoji)">
+                        {{ emoji }}
+                    </button>
+                    }
+                </div>
+            </div>
+            }
+        </div>
+        }
+    </div>
+
     <span class="carousel-label">Arremessar:</span>
-    <div class="emoji-list">
-        @for (emoji of emojis; track emoji) {
-        <button class="emoji-btn" [class.selected]="emoji === selectedEmoji" (click)="selectEmoji(emoji)"
-            [title]="'Selecionar ' + emoji">
+
+    <!-- Emojis rápidos -->
+    <div class="quick-emojis">
+        @for (emoji of quickEmojis; track emoji) {
+        <button class="emoji-btn" [class.selected]="emoji === selectedEmoji" (click)="selectEmoji(emoji)">
             {{ emoji }}
         </button>
         }
