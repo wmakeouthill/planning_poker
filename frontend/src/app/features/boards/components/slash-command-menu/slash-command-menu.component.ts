@@ -5,29 +5,45 @@ export interface SlashCommand {
     icon: string;
     title: string;
     description: string;
-    syntax: string;
+    blockType: BlockType;
     category: 'basic' | 'lists' | 'advanced';
+}
+
+export type BlockType =
+    | 'paragraph'
+    | 'heading1'
+    | 'heading2'
+    | 'heading3'
+    | 'quote'
+    | 'bullet-list'
+    | 'numbered-list'
+    | 'todo'
+    | 'code'
+    | 'divider';
+
+export interface ContentBlock {
+    id: string;
+    type: BlockType;
+    content: string;
+    checked?: boolean; // for todo items
 }
 
 export const SLASH_COMMANDS: SlashCommand[] = [
     // Basic
-    { id: 'h1', icon: 'H1', title: 'Heading 1', description: 'Título principal', syntax: '# ', category: 'basic' },
-    { id: 'h2', icon: 'H2', title: 'Heading 2', description: 'Subtítulo', syntax: '## ', category: 'basic' },
-    { id: 'h3', icon: 'H3', title: 'Heading 3', description: 'Seção', syntax: '### ', category: 'basic' },
-    { id: 'quote', icon: '❝', title: 'Quote', description: 'Citação ou destaque', syntax: '> ', category: 'basic' },
-    { id: 'divider', icon: '—', title: 'Divider', description: 'Linha divisória', syntax: '---\n', category: 'basic' },
+    { id: 'text', icon: 'T', title: 'Text', description: 'Parágrafo normal', blockType: 'paragraph', category: 'basic' },
+    { id: 'h1', icon: 'H1', title: 'Heading 1', description: 'Título principal', blockType: 'heading1', category: 'basic' },
+    { id: 'h2', icon: 'H2', title: 'Heading 2', description: 'Subtítulo', blockType: 'heading2', category: 'basic' },
+    { id: 'h3', icon: 'H3', title: 'Heading 3', description: 'Seção', blockType: 'heading3', category: 'basic' },
+    { id: 'quote', icon: '❝', title: 'Quote', description: 'Citação ou destaque', blockType: 'quote', category: 'basic' },
+    { id: 'divider', icon: '—', title: 'Divider', description: 'Linha divisória', blockType: 'divider', category: 'basic' },
 
     // Lists
-    { id: 'bullet', icon: '•', title: 'Bullet List', description: 'Lista não ordenada', syntax: '- ', category: 'lists' },
-    { id: 'numbered', icon: '1.', title: 'Numbered List', description: 'Lista ordenada', syntax: '1. ', category: 'lists' },
-    { id: 'todo', icon: '☐', title: 'To-do', description: 'Checkbox de tarefa', syntax: '- [ ] ', category: 'lists' },
+    { id: 'bullet', icon: '•', title: 'Bullet List', description: 'Lista não ordenada', blockType: 'bullet-list', category: 'lists' },
+    { id: 'numbered', icon: '1.', title: 'Numbered List', description: 'Lista ordenada', blockType: 'numbered-list', category: 'lists' },
+    { id: 'todo', icon: '☐', title: 'To-do', description: 'Checkbox de tarefa', blockType: 'todo', category: 'lists' },
 
     // Advanced
-    { id: 'code', icon: '<>', title: 'Code Block', description: 'Bloco de código', syntax: '```\n\n```', category: 'advanced' },
-    { id: 'inline-code', icon: '`', title: 'Inline Code', description: 'Código inline', syntax: '`código`', category: 'advanced' },
-    { id: 'bold', icon: 'B', title: 'Bold', description: 'Texto em negrito', syntax: '**texto**', category: 'advanced' },
-    { id: 'italic', icon: 'I', title: 'Italic', description: 'Texto em itálico', syntax: '*texto*', category: 'advanced' },
-    { id: 'link', icon: '🔗', title: 'Link', description: 'Hyperlink', syntax: '[texto](url)', category: 'advanced' },
+    { id: 'code', icon: '<>', title: 'Code Block', description: 'Bloco de código', blockType: 'code', category: 'advanced' },
 ];
 
 @Component({
