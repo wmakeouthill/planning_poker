@@ -630,6 +630,19 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
     }
 
     getCardPosition(index: number, total: number): { top: string; left: string; rotation: string; namePosition: 'top' | 'bottom' } {
+        const session = this.session();
+        const status = session?.status;
+
+        // Se os votos foram revelados, posicionar em fileira horizontal embaixo da mesa
+        if (status === 'REVEALED' || status === 'CLOSED') {
+            return this.getRevealedCardPosition(index, total);
+        }
+
+        // Durante votação, posicionar em círculo ao redor da mesa
+        return this.getVotingCardPosition(index, total);
+    }
+
+    private getVotingCardPosition(index: number, total: number): { top: string; left: string; rotation: string; namePosition: 'top' | 'bottom' } {
         // Posicionar participantes em círculo AO REDOR da mesa (não dentro)
         // Raio muito maior para ficar próximo da borda da tela
         let baseRadius: number;
@@ -697,6 +710,102 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
             left: `${x}%`,
             rotation: `${(angle * 180 / Math.PI) + 90}deg`,
             namePosition
+        };
+    }
+
+    private getRevealedCardPosition(index: number, total: number): { top: string; left: string; rotation: string; namePosition: 'top' | 'bottom' } {
+        // 'total' já é o número de votos revelados passado pelo template
+        if (total === 0) {
+            // Se não há votos revelados, usar posição padrão
+            return this.getVotingCardPosition(index, total);
+        }
+
+        // Calcular posição em fileira horizontal embaixo da mesa
+        // Centralizar a fileira: começar em 20% e terminar em 80% (60% de espaço útil)
+        // Distribuir uniformemente nesse espaço
+        const startPercent = 20;
+        const endPercent = 80;
+        const availableSpace = endPercent - startPercent;
+        
+        // Se houver apenas 1 carta, centralizar
+        if (total === 1) {
+            const leftPercent = 50;
+            let topPercent = 70;
+            
+            if (typeof window !== 'undefined') {
+                const screenHeight = window.innerHeight;
+                if (screenHeight < 600) {
+                    topPercent = 65;
+                } else if (screenHeight < 800) {
+                    topPercent = 68;
+                } else if (screenHeight > 1200) {
+                    topPercent = 72;
+                }
+            }
+            
+            return {
+                top: `${topPercent}%`,
+                left: `${leftPercent}%`,
+                rotation: '0deg',
+                namePosition: 'top'
+            };
+        }
+        
+        // Para múltiplas cartas, distribuir uniformemente
+        const spacing = availableSpace / (total - 1);
+        const leftPercent = startPercent + (spacing * index);
+        
+        // Posicionar embaixo da mesa (aproximadamente 70-75% da altura)
+        let topPercent = 70;
+        
+        if (typeof window !== 'undefined') {
+            const screenHeight = window.innerHeight;
+            if (screenHeight < 600) {
+                topPercent = 65; // Mais alto em telas baixas
+            } else if (screenHeight < 800) {
+                topPercent = 68;
+            } else if (screenHeight > 1200) {
+                topPercent = 72; // Mais baixo em telas altas
+            }
+            
+            // Ajuste adicional para mobile: reduzir espaçamento horizontal se necessário
+            const screenWidth = window.innerWidth;
+            if (screenWidth < 480) {
+                // Em telas muito pequenas, usar mais espaço horizontal
+                const mobileStart = total > 4 ? 5 : 15;
+                const mobileEnd = total > 4 ? 95 : 85;
+                const mobileSpace = mobileEnd - mobileStart;
+                const mobileSpacing = total > 1 ? mobileSpace / (total - 1) : 0;
+                const mobileLeft = total === 1 ? 50 : mobileStart + (mobileSpacing * index);
+                
+                return {
+                    top: `${topPercent}%`,
+                    left: `${mobileLeft}%`,
+                    rotation: '0deg',
+                    namePosition: 'top'
+                };
+            } else if (screenWidth < 768 && total > 5) {
+                // Em tablets com muitas cartas, usar um pouco mais de espaço
+                const tabletStart = 15;
+                const tabletEnd = 85;
+                const tabletSpace = tabletEnd - tabletStart;
+                const tabletSpacing = tabletSpace / (total - 1);
+                const tabletLeft = tabletStart + (tabletSpacing * index);
+                
+                return {
+                    top: `${topPercent}%`,
+                    left: `${tabletLeft}%`,
+                    rotation: '0deg',
+                    namePosition: 'top'
+                };
+            }
+        }
+
+        return {
+            top: `${topPercent}%`,
+            left: `${leftPercent}%`,
+            rotation: '0deg',
+            namePosition: 'top'
         };
     }
 

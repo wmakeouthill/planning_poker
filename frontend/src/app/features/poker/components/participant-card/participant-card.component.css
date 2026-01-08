@@ -9,6 +9,10 @@
     pointer-events: none;
     user-select: none;
     -webkit-user-select: none;
+    transition: top 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+                left 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: top, left, transform;
 }
 
 /* O HTML já renderiza o nome na posição correta, não precisa inverter */
@@ -283,6 +287,17 @@
     text-overflow: ellipsis;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Quando o nome está em cima (fileira revelada) */
+.participant-card.name-top {
+    gap: 0.5rem; /* Mais espaço entre nome e carta quando em fileira */
+}
+
+.participant-card.name-top .participant-name {
+    order: -1; /* Garantir que o nome fique acima da carta */
+    margin-bottom: 0;
 }
 
 /* Responsividade */

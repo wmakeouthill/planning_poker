@@ -75,10 +75,20 @@
 
                     <!-- Participants around the table with flip cards -->
                     @if (hasParticipants()) {
+                    @if (session()!.status === 'REVEALED' || session()!.status === 'CLOSED') {
+                    <!-- Quando revelado, mostrar apenas votos revelados em fileira -->
+                    @for (vote of revealedVotes(); track vote.id; let i = $index) {
+                    @let pos = getCardPosition(i, revealedVotes().length);
+                    <app-participant-card [vote]="vote" [participantName]="participantName()!" [top]="pos.top"
+                        [left]="pos.left" [namePosition]="pos.namePosition" (cardClicked)="onParticipantCardClick($event)" />
+                    }
+                    } @else {
+                    <!-- Durante votação, mostrar todos os participantes em círculo -->
                     @for (vote of session()!.votes; track vote.id; let i = $index) {
                     @let pos = getCardPosition(i, session()!.votes.length);
                     <app-participant-card [vote]="vote" [participantName]="participantName()!" [top]="pos.top"
                         [left]="pos.left" [namePosition]="pos.namePosition" (cardClicked)="onParticipantCardClick($event)" />
+                    }
                     }
                     } @else {
                     <!-- Mensagem quando não há participantes ainda -->
