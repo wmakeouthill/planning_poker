@@ -56,19 +56,34 @@ public class ServicoPokerSession {
         var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
         log.debug("Buscando sessão por id: {} para usuário {}", id, usuario.getId());
 
-        // Verificar se o usuário já é participante, se não for, criar automaticamente
-        if (!participantRepository.existsBySessionIdAndUsuarioId(id, usuario.getId())) {
-            var session = sessionRepository.findById(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("PokerSession", id));
-            // Criar participante automaticamente quando alguém tenta acessar a sessão
-            participantRepository.save(new PokerSessionParticipant(session, usuario));
-            log.info("Participante criado automaticamente para sessão {} e usuário {}", id, usuario.getId());
-        }
-
-        var session = sessionRepository.findByIdWithVotes(id)
+        var session = sessionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PokerSession", id));
 
-        return toDTO(session, participantName);
+        // Verificar se o usuário já é participante, se não for, criar automaticamente
+        var participantOpt = participantRepository.findBySessionIdAndUsuarioId(id, usuario.getId());
+        PokerSessionParticipant participant;
+        if (participantOpt.isEmpty()) {
+            // Criar participante automaticamente quando alguém tenta acessar a sessão
+            // Se foi fornecido um participantName, usar como apelido
+            participant = new PokerSessionParticipant(session, usuario, participantName);
+            participant = participantRepository.save(participant);
+            log.info("Participante criado automaticamente para sessão {} e usuário {} com apelido {}", 
+                    id, usuario.getId(), participantName);
+        } else {
+            participant = participantOpt.get();
+            // Se o participante já existe mas não tem apelido e foi fornecido um, atualizar
+            if (participant.getApelido() == null && participantName != null && !participantName.trim().isEmpty()) {
+                participant.setApelido(participantName);
+                participant = participantRepository.save(participant);
+                log.info("Apelido atualizado para participante da sessão {} e usuário {}: {}", 
+                        id, usuario.getId(), participantName);
+            }
+        }
+
+        var sessionWithVotes = sessionRepository.findByIdWithVotes(id)
+                .orElseThrow(() -> new ResourceNotFoundException("PokerSession", id));
+
+        return toDTO(sessionWithVotes, participantName, participant.getApelido());
     }
 
     @Transactional
@@ -89,7 +104,9 @@ public class ServicoPokerSession {
         // Criador entra automaticamente como participante (controle de
         // acesso/histórico)
         if (!participantRepository.existsBySessionIdAndUsuarioId(savedSession.getId(), usuario.getId())) {
-            participantRepository.save(new PokerSessionParticipant(savedSession, usuario));
+            // Usar o nome do usuário como apelido padrão
+            var apelido = usuario.getNome() != null ? usuario.getNome() : null;
+            participantRepository.save(new PokerSessionParticipant(savedSession, usuario, apelido));
         }
 
         return savedSession;
@@ -104,11 +121,24 @@ public class ServicoPokerSession {
                 .orElseThrow(() -> new ResourceNotFoundException("PokerSession", dto.sessionId()));
 
         // Verificar se o usuário já é participante, se não for, criar automaticamente
-        if (!participantRepository.existsBySessionIdAndUsuarioId(dto.sessionId(), usuario.getId())) {
+        var participantOpt = participantRepository.findBySessionIdAndUsuarioId(dto.sessionId(), usuario.getId());
+        PokerSessionParticipant participant;
+        if (participantOpt.isEmpty()) {
             // Criar participante automaticamente quando alguém vota pela primeira vez
-            participantRepository.save(new PokerSessionParticipant(session, usuario));
-            log.info("Participante criado automaticamente para sessão {} e usuário {} ao votar", dto.sessionId(),
-                    usuario.getId());
+            // Usar o participantName como apelido
+            participant = new PokerSessionParticipant(session, usuario, dto.participantName());
+            participant = participantRepository.save(participant);
+            log.info("Participante criado automaticamente para sessão {} e usuário {} ao votar com apelido {}", 
+                    dto.sessionId(), usuario.getId(), dto.participantName());
+        } else {
+            participant = participantOpt.get();
+            // Se o participante já existe mas não tem apelido ou o apelido é diferente, atualizar
+            if (participant.getApelido() == null || !participant.getApelido().equals(dto.participantName())) {
+                participant.setApelido(dto.participantName());
+                participant = participantRepository.save(participant);
+                log.info("Apelido atualizado para participante da sessão {} e usuário {}: {}", 
+                        dto.sessionId(), usuario.getId(), dto.participantName());
+            }
         }
 
         if (!session.isVotingOpen()) {
@@ -226,18 +256,32 @@ public class ServicoPokerSession {
                 : voteRepository.findBySessionIdIn(sessionIds).stream()
                         .collect(java.util.stream.Collectors.groupingBy(v -> v.getSession().getId()));
 
+        // Buscar apelidos dos participantes para cada sessão
+        final Map<Long, String> apelidosBySessionId = sessionIds.isEmpty()
+                ? Map.of()
+                : participantRepository.findBySessionIdInAndUsuarioId(sessionIds, usuario.getId()).stream()
+                        .collect(java.util.stream.Collectors.toMap(
+                                p -> p.getSession().getId(),
+                                p -> p.getApelido() != null ? p.getApelido() : null,
+                                (existing, replacement) -> existing));
+
         List<PokerSessionDTO> dtos = sessionsPage.getContent().stream()
-                .map(session -> toDTO(session, null, votesBySessionId.getOrDefault(session.getId(), List.of())))
+                .map(session -> toDTO(session, null, votesBySessionId.getOrDefault(session.getId(), List.of()), 
+                        apelidosBySessionId.getOrDefault(session.getId(), null)))
                 .toList();
 
         return PageResponseDTO.of(dtos, page, size, sessionsPage.getTotalElements());
     }
 
     private PokerSessionDTO toDTO(PokerSession session, String participantName) {
-        return toDTO(session, participantName, session.getVotes());
+        return toDTO(session, participantName, session.getVotes(), null);
     }
 
-    private PokerSessionDTO toDTO(PokerSession session, String participantName, List<Vote> votesEntity) {
+    private PokerSessionDTO toDTO(PokerSession session, String participantName, String participantApelido) {
+        return toDTO(session, participantName, session.getVotes(), participantApelido);
+    }
+
+    private PokerSessionDTO toDTO(PokerSession session, String participantName, List<Vote> votesEntity, String participantApelido) {
         var voteDtos = votesEntity.stream()
                 .map(v -> new VoteDTO(
                         v.getId(),
@@ -257,7 +301,8 @@ public class ServicoPokerSession {
                 voteDtos,
                 session.isRevealed() ? session.calculateAverage() : null,
                 session.getCreatedAt(),
-                session.getRevealedAt());
+                session.getRevealedAt(),
+                participantApelido);
     }
 
     @Transactional
@@ -269,11 +314,20 @@ public class ServicoPokerSession {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "PokerSession com inviteCode " + inviteCode + " não encontrado"));
 
-        if (!participantRepository.existsBySessionIdAndUsuarioId(session.getId(), usuario.getId())) {
-            participantRepository.save(new PokerSessionParticipant(session, usuario));
+        var participantOpt = participantRepository.findBySessionIdAndUsuarioId(session.getId(), usuario.getId());
+        String apelido = null;
+        if (participantOpt.isEmpty()) {
+            // Usar o nome do usuário como apelido padrão
+            apelido = usuario.getNome() != null ? usuario.getNome() : null;
+            var participant = new PokerSessionParticipant(session, usuario, apelido);
+            participant = participantRepository.save(participant);
+            log.info("Participante criado para sessão {} e usuário {} com apelido {}", 
+                    session.getId(), usuario.getId(), apelido);
+        } else {
+            apelido = participantOpt.get().getApelido();
         }
 
-        return new JoinSessionResponseDTO(session.getId());
+        return new JoinSessionResponseDTO(session.getId(), apelido);
     }
 
     /**

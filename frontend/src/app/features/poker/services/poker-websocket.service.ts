@@ -98,10 +98,11 @@ export class PokerWebSocketService implements OnDestroy {
             this.client = new Client({
                 webSocketFactory: () => {
                     // Criar instância do SockJS sem credenciais
-                    // Passar null como protocol (usa o padrão) e opções para desabilitar credenciais
+                    // O WebSocket não precisa de autenticação JWT - a sessão é identificada pelo ID
+                    // Isso evita problemas de CORS com Access-Control-Allow-Credentials
                     const options: any = {
                         transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
-                        withCredentials: false // Desabilitar envio de credenciais para evitar problemas de CORS
+                        withCredentials: false // Não enviar credenciais para evitar problemas de CORS
                     };
                     const sock = new SockJSClass(wsUrl, null, options);
                     return sock as any;

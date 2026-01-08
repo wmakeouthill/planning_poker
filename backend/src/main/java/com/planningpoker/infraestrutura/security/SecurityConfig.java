@@ -42,24 +42,24 @@ public class SecurityConfig {
                                 "/*.jpg", "/*.svg", "/*.woff", "/*.woff2", "/*.ttf", "/*.eot")
                         .permitAll()
                         .requestMatchers("/assets/**").permitAll()
-                        
+
                         // Rotas do Angular Router (SPA) - Servem index.html
                         .requestMatchers("/boards", "/boards/**", "/poker-room/**", "/login", "/register", "/join/**",
                                 "/auth/**")
                         .permitAll()
-                        
+
                         // Rota de fallback para erros
                         .requestMatchers("/error").permitAll()
-                        
+
                         // Endpoints públicos de API
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        
+
                         // WebSocket endpoint - permitir para handshake inicial
                         .requestMatchers("/ws/**").permitAll()
-                        
+
                         // Demais endpoints requerem autenticação
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -77,30 +77,34 @@ public class SecurityConfig {
         // Configuração para endpoints REST (permite credenciais para JWT)
         CorsConfiguration restConfiguration = new CorsConfiguration();
         restConfiguration.setAllowedOriginPatterns(List.of(
-            "http://localhost:*",
-            "http://127.0.0.1:*",
-            "https://*"
-        ));
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "https://*"));
         restConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         restConfiguration.setAllowedHeaders(List.of("*"));
         restConfiguration.setExposedHeaders(List.of("Authorization"));
         restConfiguration.setAllowCredentials(true); // Permitir credenciais para JWT
 
-        // Configuração para WebSocket (não permite credenciais para evitar problemas de CORS)
+        // Configuração específica para WebSocket SockJS
+        // O WebSocket não precisa de autenticação JWT - a sessão é identificada pelo ID
+        // Esta configuração é usada pelo Spring Security para processar requisições HTTP
+        // feitas pelo SockJS antes que o Spring WebSocket processe
+        // Permitir credenciais para evitar erros de CORS quando o SockJS envia credenciais
         CorsConfiguration wsConfiguration = new CorsConfiguration();
         wsConfiguration.setAllowedOriginPatterns(List.of(
-            "http://localhost:*",
-            "http://127.0.0.1:*",
-            "https://*"
-        ));
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "https://*"));
         wsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "OPTIONS"));
         wsConfiguration.setAllowedHeaders(List.of("*"));
-        wsConfiguration.setAllowCredentials(false); // WebSocket não precisa de credenciais
+        wsConfiguration.setAllowCredentials(true); // Permitir credenciais para evitar erros de CORS
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", restConfiguration);
+        // Registrar CORS para /ws/** ANTES da configuração padrão
+        // Isso garante que endpoints SockJS como /ws/poker/info recebam headers CORS corretos
         source.registerCorsConfiguration("/ws/**", wsConfiguration);
-        // Configuração padrão para outros endpoints
+        // Configuração padrão para outros endpoints (deve vir por último)
         source.registerCorsConfiguration("/**", restConfiguration);
         return source;
     }

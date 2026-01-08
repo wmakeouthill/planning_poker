@@ -36,6 +36,9 @@ public class PokerSessionParticipant implements Serializable {
     @Column(name = "DAT_JOINED", nullable = false)
     private LocalDateTime joinedAt;
 
+    @Column(name = "TXT_APELIDO", length = 100)
+    private String apelido;
+
     @PrePersist
     protected void onCreate() {
         this.joinedAt = LocalDateTime.now();
@@ -44,6 +47,12 @@ public class PokerSessionParticipant implements Serializable {
     public PokerSessionParticipant(PokerSession session, Usuario usuario) {
         this.session = session;
         this.usuario = usuario;
+    }
+
+    public PokerSessionParticipant(PokerSession session, Usuario usuario, String apelido) {
+        this.session = session;
+        this.usuario = usuario;
+        this.apelido = apelido;
     }
 }
 

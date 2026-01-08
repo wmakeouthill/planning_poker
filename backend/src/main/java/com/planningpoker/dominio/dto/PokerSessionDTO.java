@@ -18,5 +18,6 @@ public record PokerSessionDTO(
         List<VoteDTO> votes,
         Double averageVote,
         LocalDateTime createdAt,
-        LocalDateTime revealedAt) {
+        LocalDateTime revealedAt,
+        String participantApelido) { // Apelido do participante atual na sessão
 }

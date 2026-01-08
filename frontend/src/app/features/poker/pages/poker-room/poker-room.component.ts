@@ -70,8 +70,9 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         const session = this.session();
         if (!session) return 0;
         const votes = session.votes || [];
+        if (!Array.isArray(votes) || votes.length === 0) return 0;
         // Contar apenas votos que foram realmente dados (hasVoted = true e value não está vazio)
-        const count = votes.filter(v => v.hasVoted && v.value && v.value.trim() !== '').length;
+        const count = votes.filter(v => v && v.hasVoted && v.value && typeof v.value === 'string' && v.value.trim() !== '').length;
         return count;
     });
 
@@ -79,6 +80,7 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         const session = this.session();
         if (!session) return 0;
         const votes = session.votes || [];
+        if (!Array.isArray(votes)) return 0;
         // Contar todos os participantes que entraram na sessão (têm um voto registrado)
         // Um participante entra quando cria um voto (mesmo que vazio)
         return votes.length;

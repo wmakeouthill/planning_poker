@@ -1,5 +1,5 @@
 <div class="table-center">
-    @if (status === 'VOTING') {
+    @if (status === 'VOTING' && totalParticipants > 0) {
     <div class="voting-status">
         <span class="vote-count">{{ votedCount }}/{{ totalParticipants }}</span>
         <span class="vote-label">votaram</span>

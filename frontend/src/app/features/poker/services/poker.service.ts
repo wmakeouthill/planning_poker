@@ -6,6 +6,7 @@ import { getApiUrl } from '../../../core/utils/api-url';
 
 export interface JoinSessionResponseDTO {
     sessionId: number;
+    apelido?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -46,7 +47,14 @@ export class PokerService {
     }
 
     entrarPorInviteCode(inviteCode: string): Observable<JoinSessionResponseDTO> {
-        return this.http.post<JoinSessionResponseDTO>(`${this.baseUrl}/sessions/join/${inviteCode}`, {});
+        return this.http.post<JoinSessionResponseDTO>(`${this.baseUrl}/sessions/join/${inviteCode}`, {}).pipe(
+            tap((response) => {
+                // Se o backend retornou um apelido, usar ele (persistido na sessão)
+                if (response.apelido && response.apelido.trim() !== '') {
+                    this.setParticipantName(response.apelido);
+                }
+            })
+        );
     }
 
     buscarSessao(id: number): Observable<PokerSession> {
@@ -62,6 +70,10 @@ export class PokerService {
                 // Garantir que votes sempre seja um array
                 if (!session.votes) {
                     session.votes = [];
+                }
+                // Se o backend retornou um apelido, usar ele (persistido na sessão)
+                if (session.participantApelido && session.participantApelido.trim() !== '') {
+                    this.setParticipantName(session.participantApelido);
                 }
                 this.currentSession.set(session);
             })
@@ -85,6 +97,10 @@ export class PokerService {
                 if (session && session.id) {
                     // Garantir que votes sempre seja um array
                     const votes = session.votes || [];
+                    // Se o backend retornou um apelido, usar ele (persistido na sessão)
+                    if (session.participantApelido && session.participantApelido.trim() !== '') {
+                        this.setParticipantName(session.participantApelido);
+                    }
                     // Converter para formato esperado se necessário
                     const formattedSession: PokerSession = {
                         id: session.id,
@@ -97,7 +113,8 @@ export class PokerService {
                         averageVote: session.averageVote || null,
                         createdAt: session.createdAt,
                         revealedAt: session.revealedAt || null,
-                        createdBy: session.createdBy
+                        createdBy: session.createdBy,
+                        participantApelido: session.participantApelido || null
                     };
                     this.currentSession.set(formattedSession);
                     return formattedSession;

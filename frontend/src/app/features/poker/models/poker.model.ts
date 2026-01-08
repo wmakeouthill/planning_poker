@@ -10,6 +10,7 @@ export interface PokerSession {
     createdAt: string;
     revealedAt: string | null;
     createdBy?: string; // Nome do criador/mestre da sessão
+    participantApelido?: string | null; // Apelido do participante atual na sessão
 }
 
 export interface Vote {

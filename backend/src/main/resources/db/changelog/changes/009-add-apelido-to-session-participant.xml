@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="009-add-apelido-to-session-participant" author="planning-poker">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <tableExists tableName="PP_POKER_SESSION_PARTICIPANT"/>
+                <not>
+                    <columnExists tableName="PP_POKER_SESSION_PARTICIPANT" columnName="TXT_APELIDO"/>
+                </not>
+            </and>
+        </preConditions>
+
+        <comment>Adiciona coluna de apelido na tabela de participantes da sessão</comment>
+
+        <addColumn tableName="PP_POKER_SESSION_PARTICIPANT">
+            <column name="TXT_APELIDO" type="VARCHAR(100)"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>
