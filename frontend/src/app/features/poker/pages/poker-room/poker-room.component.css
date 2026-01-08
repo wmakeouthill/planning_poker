@@ -134,7 +134,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4rem 3rem; /* Increased padding for card overflow */
+    /* Padding maior no topo e embaixo para acomodar cartas com raio grande (até 85% * 0.85 = ~72%) */
+    padding: 6rem 2rem 6rem 2rem; /* Mais espaço vertical, menos horizontal */
     min-height: 0;
     overflow: visible;
     position: relative;
@@ -431,7 +432,8 @@
     }
 
     .poker-table-container {
-        padding: 0.5rem;
+        /* Padding maior no mobile também para acomodar cartas */
+        padding: 4rem 1rem 4rem 1rem;
         flex: 1 1 auto;
         min-height: 0;
     }
@@ -541,7 +543,8 @@
     }
 
     .poker-table-container {
-        padding: 0.25rem;
+        /* Padding adequado para landscape mobile */
+        padding: 3rem 0.5rem 3rem 0.5rem;
         flex: 1 1 auto;
     }
 
