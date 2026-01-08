@@ -24,7 +24,7 @@ export interface AuthResponse {
 export class AuthService {
     private readonly http = inject(HttpClient);
     private readonly ngZone = inject(NgZone);
-    
+
     private get baseUrl(): string {
         return `${getApiUrl()}/v1/auth`;
     }
@@ -106,18 +106,18 @@ export class AuthService {
                                     reject(err);
                                 }
                             });
-                        }
+                        },
+                        // Configurações adicionais para melhor compatibilidade
+                        ux_mode: 'popup',
+                        auto_select: false,
+                        cancel_on_tap_outside: true
                     });
                     this.googleInitialized = true;
                 }
 
-                // Mostra o popup de login
-                google.accounts.id.prompt((notification: any) => {
-                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                        // Usa o button flow como fallback
-                        this.showGoogleOneTap(resolve, reject);
-                    }
-                });
+                // Usa o botão diretamente em vez de One Tap (mais confiável)
+                // One Tap pode ser bloqueado por bloqueadores de anúncios
+                this.showGoogleOneTap(resolve, reject);
             } catch (err) {
                 reject(err);
             }
@@ -135,25 +135,43 @@ export class AuthService {
         buttonDiv.style.left = '50%';
         buttonDiv.style.transform = 'translate(-50%, -50%)';
         buttonDiv.style.zIndex = '9999';
+        buttonDiv.style.backgroundColor = 'white';
+        buttonDiv.style.padding = '10px';
+        buttonDiv.style.borderRadius = '8px';
+        buttonDiv.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
         document.body.appendChild(buttonDiv);
 
-        google.accounts.id.renderButton(buttonDiv, {
-            theme: 'outline',
-            size: 'large',
-            type: 'standard',
-            text: 'signin_with'
-        });
+        try {
+            google.accounts.id.renderButton(buttonDiv, {
+                theme: 'outline',
+                size: 'large',
+                type: 'standard',
+                text: 'signin_with',
+                width: 250
+            });
 
-        // Clica automaticamente
-        const button = buttonDiv.querySelector('div[role="button"]') as HTMLElement;
-        if (button) {
-            button.click();
-        }
+            // Aguarda um pouco para o botão ser renderizado
+            setTimeout(() => {
+                const button = buttonDiv.querySelector('div[role="button"]') as HTMLElement;
+                if (button) {
+                    button.click();
+                } else {
+                    reject(new Error('Botão do Google não foi renderizado. Verifique se bloqueadores de anúncios estão desabilitados.'));
+                    buttonDiv.remove();
+                }
+            }, 100);
 
-        // Remove após 30 segundos
-        setTimeout(() => {
+            // Remove após 30 segundos se não for clicado
+            setTimeout(() => {
+                if (document.getElementById('google-signin-button')) {
+                    buttonDiv.remove();
+                    reject(new Error('Tempo de espera esgotado. Tente novamente.'));
+                }
+            }, 30000);
+        } catch (err) {
             buttonDiv.remove();
-        }, 30000);
+            reject(err);
+        }
     }
 
     private async handleGoogleCredential(credential: string): Promise<void> {

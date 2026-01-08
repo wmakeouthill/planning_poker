@@ -4,7 +4,7 @@
 
 declare global {
   interface Window {
-    __env: {
+    __env?: {
       apiUrl: string;
       googleClientId: string;
     };
