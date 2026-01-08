@@ -27,6 +27,7 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
     readonly board = signal<Board | null>(null);
     readonly loading = signal(true);
     readonly saving = signal(false);
+    readonly viewMode = signal<'view' | 'edit'>('view');
 
     // Editable fields
     readonly title = signal('');
@@ -328,11 +329,18 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
         }).subscribe({
             next: () => {
                 this.saving.set(false);
+                this.viewMode.set('view'); // Switch to view mode after saving
             },
             error: () => {
                 this.saving.set(false);
             }
         });
+    }
+
+    enterEditMode() {
+        this.viewMode.set('edit');
+        // Push initial history state when entering edit mode
+        setTimeout(() => this.pushHistory(), 100);
     }
 
     goBack() {
@@ -565,18 +573,31 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
     private focusBlockAtPosition(blockId: string, position: number) {
         setTimeout(() => {
             const blockEl = this.blockElements?.find(el => el.nativeElement.dataset['blockId'] === blockId);
-            if (blockEl && blockEl.nativeElement.firstChild) {
+            if (!blockEl) return;
+
+            blockEl.nativeElement.focus();
+
+            const firstChild = blockEl.nativeElement.firstChild;
+            if (!firstChild || firstChild.nodeType !== Node.TEXT_NODE) {
+                // No text node, just focus the element
+                return;
+            }
+
+            try {
                 const range = document.createRange();
                 const sel = window.getSelection();
-                const textNode = blockEl.nativeElement.firstChild;
-                const safePos = Math.min(position, textNode.textContent?.length || 0);
-                range.setStart(textNode, safePos);
+                const textLength = firstChild.textContent?.length || 0;
+                const safePos = Math.min(Math.max(0, position), textLength);
+
+                range.setStart(firstChild, safePos);
                 range.collapse(true);
                 sel?.removeAllRanges();
                 sel?.addRange(range);
-                blockEl.nativeElement.focus();
+            } catch (e) {
+                // Fallback: just focus without cursor positioning
+                console.warn('Could not set cursor position:', e);
             }
-        }, 0);
+        }, 10);
     }
 
     toggleTodo(blockId: string) {

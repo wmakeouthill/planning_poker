@@ -13,11 +13,16 @@
                     <path d="M19 12H5m7-7l-7 7 7 7" />
                 </svg>
             </button>
+            @if (viewMode() === 'edit') {
             <input type="text" class="title-input" placeholder="Título do board" [value]="title()"
                 (input)="title.set($any($event.target).value)" />
+            } @else {
+            <h1 class="title-display">{{ title() }}</h1>
+            }
         </div>
 
         <div class="header-actions">
+            @if (viewMode() === 'edit') {
             <button class="btn-primary" (click)="save()" [disabled]="saving()">
                 @if (saving()) {
                 <span class="saving-spinner"></span>
@@ -29,16 +34,60 @@
                 Salvar
                 }
             </button>
+            } @else {
+            <button class="btn-primary" (click)="enterEditMode()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Editar
+            </button>
+            }
         </div>
     </header>
 
     <!-- Description -->
     <div class="description-container">
+        @if (viewMode() === 'edit') {
         <input type="text" class="description-input" placeholder="Adicione uma descrição..." [value]="description()"
             (input)="description.set($any($event.target).value)" />
+        } @else if (description()) {
+        <p class="description-display">{{ description() }}</p>
+        }
     </div>
 
-    <!-- Block Editor -->
+    <!-- View Mode: Rendered Preview -->
+    @if (viewMode() === 'view') {
+    <div class="view-container">
+        @for (block of blocks(); track trackByBlockId($index, block)) {
+        <div class="view-block" [class]="'view-block-' + block.type">
+            @switch (block.type) {
+            @case ('heading1') { <h1>{{ block.content }}</h1> }
+            @case ('heading2') { <h2>{{ block.content }}</h2> }
+            @case ('heading3') { <h3>{{ block.content }}</h3> }
+            @case ('quote') { <blockquote>{{ block.content }}</blockquote> }
+            @case ('bullet-list') { <div class="list-item">• {{ block.content }}</div> }
+            @case ('numbered-list') { <div class="list-item">{{ getNumberedIndex(block.id) }}. {{ block.content }}</div>
+            }
+            @case ('todo') {
+            <div class="todo-item" [class.checked]="block.checked">
+                <input type="checkbox" [checked]="block.checked" disabled />
+                <span>{{ block.content }}</span>
+            </div>
+            }
+            @case ('code') {
+            <pre><code>{{ block.content }}</code></pre> }
+            @case ('divider') {
+            <hr /> }
+            @default { <p>{{ block.content }}</p> }
+            }
+        </div>
+        }
+    </div>
+    }
+
+    <!-- Edit Mode: Block Editor -->
+    @if (viewMode() === 'edit') {
     <div class="blocks-container">
         @for (block of blocks(); track trackByBlockId($index, block)) {
         <div class="block-wrapper" [class.focused]="focusedBlockId() === block.id">
@@ -80,6 +129,7 @@
     <app-slash-command-menu [filter]="slashFilter()" [positionTop]="slashMenuPosition().top"
         [positionLeft]="slashMenuPosition().left" (commandSelected)="onCommandSelected($event)"
         (closed)="closeSlashMenu()" />
+    }
     }
     }
 </div>
