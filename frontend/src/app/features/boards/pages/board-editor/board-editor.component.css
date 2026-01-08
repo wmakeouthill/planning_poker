@@ -1,7 +1,11 @@
 .board-editor-page {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 4rem);
+    min-height: calc(100vh - 4rem);
+    padding: 1.5rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
 }
 
 .loading-container {
@@ -29,13 +33,17 @@
     }
 }
 
+/* ========== HEADER ========== */
 .editor-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 1rem;
+    padding: 1rem 1.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
 }
 
 .header-left {
@@ -43,17 +51,19 @@
     align-items: center;
     gap: 1rem;
     flex: 1;
+    min-width: 0;
 }
 
 .back-btn {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
+    border-radius: 12px;
     color: #94a3b8;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -62,6 +72,7 @@
 .back-btn:hover {
     background: rgba(255, 255, 255, 0.1);
     color: white;
+    transform: translateX(-2px);
 }
 
 .back-btn svg {
@@ -71,6 +82,7 @@
 
 .title-input {
     flex: 1;
+    min-width: 0;
     background: transparent;
     border: none;
     font-size: 1.5rem;
@@ -91,18 +103,20 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    flex-shrink: 0;
 }
 
 .view-toggle {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.625rem 1rem;
+    padding: 0.75rem 1.25rem;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
+    border-radius: 10px;
     color: #94a3b8;
     font-size: 0.875rem;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -121,6 +135,8 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
 }
 
 .btn-primary svg {
@@ -137,75 +153,287 @@
     animation: spin 0.8s linear infinite;
 }
 
+/* ========== DESCRIPTION ========== */
 .description-container {
-    margin-bottom: 1rem;
+    padding: 0 0.5rem;
+    margin-bottom: 1.5rem;
 }
 
 .description-input {
     width: 100%;
     background: transparent;
     border: none;
-    font-size: 0.9375rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 1rem;
     color: #94a3b8;
-    padding: 0.5rem 0;
+    padding: 0.75rem 0;
+    transition: all 0.2s ease;
 }
 
 .description-input:focus {
     outline: none;
     color: #e2e8f0;
+    border-bottom-color: rgba(139, 92, 246, 0.3);
 }
 
 .description-input::placeholder {
     color: #475569;
 }
 
+/* ========== EDITOR CONTAINER ========== */
 .editor-container {
     flex: 1;
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 .markdown-editor {
     flex: 1;
     width: 100%;
+    min-height: 400px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 1.5rem;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    border-radius: 16px;
+    padding: 2rem;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
     font-size: 0.9375rem;
-    line-height: 1.7;
+    line-height: 1.8;
     color: #e2e8f0;
     resize: none;
+    transition: all 0.2s ease;
 }
 
 .markdown-editor:focus {
     outline: none;
-    border-color: rgba(139, 92, 246, 0.3);
+    border-color: rgba(139, 92, 246, 0.4);
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
 }
 
 .markdown-editor::placeholder {
     color: #475569;
+    line-height: 1.8;
 }
 
+/* ========== MARKDOWN PREVIEW ========== */
 .markdown-preview {
     flex: 1;
+    min-height: 400px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 1.5rem;
+    border-radius: 16px;
+    padding: 2rem;
     overflow-y: auto;
-    line-height: 1.7;
+    line-height: 1.8;
 }
 
+.markdown-preview h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+}
+
+.markdown-preview h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 1.5rem 0 0.75rem;
+    color: #e2e8f0;
+}
+
+.markdown-preview h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 1.25rem 0 0.5rem;
+    color: #cbd5e1;
+}
+
+.markdown-preview strong {
+    font-weight: 600;
+    color: #f1f5f9;
+}
+
+.markdown-preview em {
+    color: #a5b4fc;
+}
+
+.markdown-preview code {
+    background: rgba(139, 92, 246, 0.2);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.875em;
+}
+
+.markdown-preview pre {
+    background: #0f172a;
+    padding: 1.25rem;
+    border-radius: 12px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.markdown-preview pre code {
+    background: none;
+    padding: 0;
+    font-size: 0.875rem;
+}
+
+.markdown-preview li {
+    margin-bottom: 0.5rem;
+    padding-left: 0.5rem;
+}
+
+.markdown-preview blockquote {
+    border-left: 4px solid #8b5cf6;
+    padding-left: 1rem;
+    margin: 1rem 0;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* ========== RESPONSIVE: Tablets ========== */
+@media (max-width: 1024px) {
+    .board-editor-page {
+        padding: 1.25rem 1.5rem;
+    }
+
+    .editor-header {
+        padding: 1rem;
+    }
+
+    .title-input {
+        font-size: 1.25rem;
+    }
+
+    .markdown-editor,
+    .markdown-preview {
+        padding: 1.5rem;
+    }
+}
+
+/* ========== RESPONSIVE: Mobile ========== */
 @media (max-width: 768px) {
+    .board-editor-page {
+        padding: 1rem;
+        min-height: calc(100vh - 3rem);
+    }
+
     .editor-header {
         flex-direction: column;
         align-items: stretch;
         gap: 1rem;
+        padding: 1rem;
+        border-radius: 12px;
+    }
+
+    .header-left {
+        width: 100%;
+    }
+
+    .title-input {
+        font-size: 1.125rem;
     }
 
     .header-actions {
-        justify-content: flex-end;
+        justify-content: stretch;
+        width: 100%;
+    }
+
+    .view-toggle {
+        flex: 1;
+        justify-content: center;
+        padding: 0.875rem 1rem;
+    }
+
+    .btn-primary {
+        flex: 1;
+        justify-content: center;
+        padding: 0.875rem 1rem;
+    }
+
+    .markdown-editor,
+    .markdown-preview {
+        border-radius: 12px;
+        padding: 1.25rem;
+        min-height: 350px;
+    }
+
+    .markdown-editor {
+        font-size: 0.875rem;
+    }
+
+    .description-container {
+        padding: 0;
+    }
+}
+
+/* ========== RESPONSIVE: Small Mobile ========== */
+@media (max-width: 480px) {
+    .board-editor-page {
+        padding: 0.75rem;
+    }
+
+    .editor-header {
+        padding: 0.875rem;
+        margin-bottom: 1rem;
+    }
+
+    .back-btn {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+    }
+
+    .title-input {
+        font-size: 1rem;
+    }
+
+    .header-actions {
+        flex-direction: column;
+    }
+
+    .view-toggle,
+    .btn-primary {
+        width: 100%;
+    }
+
+    .markdown-editor,
+    .markdown-preview {
+        padding: 1rem;
+        min-height: 300px;
+    }
+
+    .markdown-preview h1 {
+        font-size: 1.5rem;
+    }
+
+    .markdown-preview h2 {
+        font-size: 1.25rem;
+    }
+
+    .markdown-preview h3 {
+        font-size: 1.125rem;
+    }
+}
+
+/* ========== Animations ========== */
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
