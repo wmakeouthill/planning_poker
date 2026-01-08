@@ -47,7 +47,7 @@ export const routes: Routes = [
             .then(m => m.SessionHistoryComponent)
     },
     {
-        // Importante: com baseHref '/poker/', a URL final fica /poker/join/:inviteCode
+        // Importante: com baseHref '/planning_poker/', a URL final fica /planning_poker/join/:inviteCode
         path: 'join/:inviteCode',
         canActivate: [authGuard],
         loadComponent: () => import('./features/poker/pages/poker-join/poker-join.component')

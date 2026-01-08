@@ -54,7 +54,9 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
     readonly inviteUrl = computed(() => {
         const session = this.session();
         const code = session?.inviteCode;
-        return code ? `${window.location.origin}/poker/join/${code}` : null;
+        // Usa document.baseURI para obter o baseHref dinamicamente
+        const baseHref = document.baseURI.replace(window.location.origin, '').replace(/\/$/, '');
+        return code ? `${window.location.origin}${baseHref}/join/${code}` : null;
     });
 
     readonly selectedCard = signal<string | null>(null);
