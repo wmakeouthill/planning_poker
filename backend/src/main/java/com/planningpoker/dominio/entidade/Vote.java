@@ -1,5 +1,6 @@
 package com.planningpoker.dominio.entidade;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -34,6 +35,7 @@ public class Vote implements Serializable {
     @Column(name = "IND_REVEALED", nullable = false)
     private boolean revealed = false;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_SESSION", nullable = false)
     private PokerSession session;

@@ -1,5 +1,6 @@
 package com.planningpoker.dominio.entidade;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.planningpoker.dominio.enums.SessionMode;
 import com.planningpoker.dominio.enums.SessionStatus;
 import jakarta.persistence.*;
@@ -42,6 +43,7 @@ public class PokerSession implements Serializable {
     @Column(name = "COD_MODE", nullable = false)
     private SessionMode mode = SessionMode.EFFORT_ESTIMATION;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_STORY")
     private Story story;

@@ -133,6 +133,14 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         return session.votes.filter(v => v.revealed && v.value);
     });
 
+    // Verifica se todos os participantes votaram (para habilitar botão de revelar)
+    readonly allVoted = computed(() => {
+        const total = this.totalParticipants();
+        const voted = this.votedCount();
+        // Só permite revelar quando há participantes e todos votaram
+        return total > 0 && voted === total;
+    });
+
     constructor() {
         // Effect para sincronizar selectedCard com myVote
         effect(() => {
@@ -188,7 +196,10 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit() {
-        this.pokerService.loadParticipantName();
+        // Limpar apelido anterior - cada sessão tem seu próprio apelido
+        // O apelido correto será carregado do backend se o usuário já participou dessa sessão
+        this.pokerService.participantName.set('');
+        localStorage.removeItem('poker_participant_name');
 
         // Verificar se há um ID na rota
         const sessionId = this.route.snapshot.paramMap.get('id');
@@ -209,9 +220,6 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                 // Se não tem apelido persistido na sessão, pedir ao usuário
                 // Sempre pedir apelido quando entrar em uma sessão nova
                 if (!session.participantApelido || session.participantApelido.trim() === '') {
-                    // Limpar apelido do localStorage para forçar pedir novo apelido para esta sessão
-                    this.pokerService.participantName.set('');
-                    localStorage.removeItem('poker_participant_name');
                     this.showJoinModal.set(true);
                     return;
                 }
@@ -278,9 +286,6 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                     // Se não tem apelido persistido na sessão, pedir ao usuário
                     // Sempre pedir apelido quando entrar em uma sessão nova
                     if (!session.participantApelido || session.participantApelido.trim() === '') {
-                        // Limpar apelido do localStorage para forçar pedir novo apelido para esta sessão
-                        this.pokerService.participantName.set('');
-                        localStorage.removeItem('poker_participant_name');
                         this.showJoinModal.set(true);
                         return;
                     }
@@ -653,7 +658,7 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         // Posicionar participantes em círculo ao redor da mesa
         // O posicionamento é relativo à mesa (0% = borda esquerda/topo, 100% = borda direita/baixo)
         // Valores > 100% ou < 0% ficam fora da mesa
-        
+
         // Raio base para ficar ao redor da mesa (fora dela)
         let baseRadiusX = 65; // Raio horizontal (%)
         let baseRadiusY = 75; // Raio vertical (%)

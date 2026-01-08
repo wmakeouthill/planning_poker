@@ -46,6 +46,7 @@ public class Board implements Serializable {
     @JoinColumn(name = "ID_OWNER")
     private Usuario owner;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "board", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Story> stories = new ArrayList<>();
 

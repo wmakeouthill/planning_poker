@@ -127,13 +127,18 @@
         <!-- Controls -->
         <div class="controls">
             @if (session()!.status === 'VOTING' && isMaster()) {
-            <button class="btn-reveal" (click)="revealVotes()">
+            <button class="btn-reveal" (click)="revealVotes()" [disabled]="!allVoted()"
+                [title]="allVoted() ? 'Revelar todos os votos' : 'Aguardando todos votarem (' + votedCount() + '/' + totalParticipants() + ')'">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path
                         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
+                @if (allVoted()) {
                 Revelar Votos
+                } @else {
+                Aguardando ({{ votedCount() }}/{{ totalParticipants() }})
+                }
             </button>
             } @else if (session()!.status === 'REVEALED') {
             <button class="btn-reset" (click)="resetVotes()">

@@ -23,6 +23,10 @@ export class PokerJoinComponent implements OnInit {
     readonly error = signal<string | null>(null);
 
     ngOnInit(): void {
+        // Limpar apelido anterior - cada sessão tem seu próprio apelido
+        this.pokerService.participantName.set('');
+        localStorage.removeItem('poker_participant_name');
+
         const inviteCode = this.route.snapshot.paramMap.get('inviteCode');
         if (!inviteCode) {
             this.error.set('Link de convite inválido.');

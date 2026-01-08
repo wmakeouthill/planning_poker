@@ -1,5 +1,6 @@
 package com.planningpoker.dominio.entidade;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -34,10 +35,12 @@ public class Story implements Serializable {
     @Column(name = "NUM_ESTIMATED_POINTS")
     private Integer estimatedPoints;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_BOARD", nullable = false)
     private Board board;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PokerSession> sessions = new ArrayList<>();
 
