@@ -1,0 +1,28 @@
+<div class="slash-menu" [style.top.px]="positionTop" [style.left.px]="positionLeft">
+    <div class="menu-header">
+        <span class="menu-title">Formatação</span>
+        <span class="menu-hint">↑↓ navegar · Enter selecionar · Esc fechar</span>
+    </div>
+
+    @if (filteredCommands().length === 0) {
+    <div class="no-results">
+        Nenhum comando encontrado
+    </div>
+    } @else {
+    @for (group of groupedCommands(); track group.category) {
+    <div class="command-group">
+        <div class="group-label">{{ group.label }}</div>
+        @for (command of group.commands; track command.id) {
+        <button class="command-item" [class.selected]="isSelected(command)" (click)="selectCommand(command)"
+            (mouseenter)="selectedIndex.set(getOverallIndex(command))">
+            <span class="command-icon">{{ command.icon }}</span>
+            <div class="command-content">
+                <span class="command-title">{{ command.title }}</span>
+                <span class="command-description">{{ command.description }}</span>
+            </div>
+        </button>
+        }
+    </div>
+    }
+    }
+</div>

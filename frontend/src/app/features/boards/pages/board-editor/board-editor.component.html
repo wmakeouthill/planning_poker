@@ -58,25 +58,26 @@
     <!-- Editor / Preview -->
     <div class="editor-container">
         @if (viewMode() === 'edit') {
-        <textarea class="markdown-editor" placeholder="Digite seu conteúdo em Markdown...
+        <textarea #contentTextarea class="markdown-editor" placeholder="Digite seu conteúdo em Markdown...
 
-# Título
-## Subtítulo
+Use / para inserir formatações como:
+• Headings (# ## ###)
+• Citações (>)
+• Listas (- ou 1.)
+• Código (```)
 
-- Item da lista
-- Outro item
-
-**Texto em negrito**
-*Texto em itálico*
-
-`código inline`
-
-```
-bloco de código
-```" [value]="content()" (input)="content.set($any($event.target).value)"></textarea>
+Experimente digitar / agora!" [value]="content()" (input)="onContentInput($event)"
+            (keydown)="onContentKeydown($event)"></textarea>
         } @else {
         <div class="markdown-preview" [innerHTML]="renderMarkdown(content())"></div>
         }
     </div>
+
+    <!-- Slash Command Menu -->
+    @if (showSlashMenu()) {
+    <app-slash-command-menu [filter]="slashFilter()" [positionTop]="slashMenuPosition().top"
+        [positionLeft]="slashMenuPosition().left" (commandSelected)="onCommandSelected($event)"
+        (closed)="closeSlashMenu()" />
+    }
     }
 </div>
