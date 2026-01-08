@@ -188,16 +188,24 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
     }
 
     private carregarSessaoPorId(sessionId: number): void {
-        // Se não tem nome, mostrar modal
-        if (!this.participantName()) {
-            this.showJoinModal.set(true);
-            // Quando o usuário entrar, carregar a sessão
-            return;
-        }
-
-        // Carregar sessão imediatamente para mostrar o link de convite
+        // Carregar sessão para verificar se o usuário já tem apelido persistido
         this.pokerService.buscarSessao(sessionId).subscribe({
             next: (session) => {
+                // Se não tem apelido persistido na sessão, pedir ao usuário
+                // Sempre pedir apelido quando entrar em uma sessão nova
+                if (!session.participantApelido || session.participantApelido.trim() === '') {
+                    // Limpar apelido do localStorage para forçar pedir novo apelido para esta sessão
+                    this.pokerService.participantName.set('');
+                    localStorage.removeItem('poker_participant_name');
+                    this.showJoinModal.set(true);
+                    return;
+                }
+
+                // Se tem apelido persistido, usar ele
+                if (session.participantApelido) {
+                    this.pokerService.setParticipantName(session.participantApelido);
+                }
+
                 // A sessão já foi atualizada no serviço, então o inviteUrl já deve estar disponível
                 const name = this.participantName();
                 // Verificar se o participante já está na sessão
@@ -241,68 +249,77 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
             },
             error: (error) => {
                 console.error('Erro ao carregar sessão:', error);
-                // Redirecionar para a página de poker se a sessão não for encontrada
-                this.router.navigate(['/poker']);
+                // Se não conseguir carregar, mostrar modal para pedir apelido
+                this.showJoinModal.set(true);
             }
         });
     }
 
     private carregarSessaoAtiva(): void {
-        // Se não tem nome, mostrar modal
-        if (!this.participantName()) {
-            this.showJoinModal.set(true);
-        } else {
-            // Buscar sessão ativa e iniciar polling
-            // A sessão já será atualizada no serviço, então o inviteUrl já deve estar disponível
-            this.pokerService.buscarSessaoAtiva().subscribe({
-                next: (session) => {
-                    if (session) {
-                        const name = this.participantName();
-                        // Verificar se o participante já está na sessão
-                        // Garantir que votes existe e é um array
-                        const votes = session.votes || [];
-                        const isInSession = votes.some(v => v.participantName === name);
-                        if (!isInSession && name) {
-                            // Criar voto vazio para o participante aparecer na mesa
-                            this.pokerService.votar({
-                                sessionId: session.id,
-                                participantName: name,
-                                value: ''
-                            }).subscribe({
-                                next: () => {
-                                    // Recarregar sessão para ter todos os participantes atualizados
-                                    this.pokerService.buscarSessao(session.id).subscribe({
-                                        next: (updatedSession) => {
-                                            // Garantir que a sessão foi atualizada com os votos
-                                            if (updatedSession && updatedSession.votes) {
-                                                this.startPolling(session.id);
-                                            } else {
-                                                // Se não tem votos, tentar novamente após um pequeno delay
-                                                setTimeout(() => {
-                                                    this.pokerService.buscarSessao(session.id).subscribe({
-                                                        next: () => this.startPolling(session.id)
-                                                    });
-                                                }, 500);
-                                            }
-                                        }
-                                    });
-                                },
-                                error: () => {
-                                    // Se falhar ao votar, ainda tenta iniciar polling
-                                    this.startPolling(session.id);
-                                }
-                            });
-                        } else {
-                            // Já está na sessão, iniciar polling imediatamente
-                            this.startPolling(session.id);
-                        }
+        // Buscar sessão ativa para verificar se o usuário já tem apelido persistido
+        this.pokerService.buscarSessaoAtiva().subscribe({
+            next: (session) => {
+                if (session) {
+                    // Se não tem apelido persistido na sessão, pedir ao usuário
+                    // Sempre pedir apelido quando entrar em uma sessão nova
+                    if (!session.participantApelido || session.participantApelido.trim() === '') {
+                        // Limpar apelido do localStorage para forçar pedir novo apelido para esta sessão
+                        this.pokerService.participantName.set('');
+                        localStorage.removeItem('poker_participant_name');
+                        this.showJoinModal.set(true);
+                        return;
                     }
-                },
-                error: () => {
-                    // Erro silencioso - não há sessão ativa é um caso normal
+
+                    // Se tem apelido persistido, usar ele
+                    if (session.participantApelido) {
+                        this.pokerService.setParticipantName(session.participantApelido);
+                    }
+
+                    const name = this.participantName();
+                    // Verificar se o participante já está na sessão
+                    // Garantir que votes existe e é um array
+                    const votes = session.votes || [];
+                    const isInSession = votes.some(v => v.participantName === name);
+                    if (!isInSession && name) {
+                        // Criar voto vazio para o participante aparecer na mesa
+                        this.pokerService.votar({
+                            sessionId: session.id,
+                            participantName: name,
+                            value: ''
+                        }).subscribe({
+                            next: () => {
+                                // Recarregar sessão para ter todos os participantes atualizados
+                                this.pokerService.buscarSessao(session.id).subscribe({
+                                    next: (updatedSession) => {
+                                        // Garantir que a sessão foi atualizada com os votos
+                                        if (updatedSession && updatedSession.votes) {
+                                            this.startPolling(session.id);
+                                        } else {
+                                            // Se não tem votos, tentar novamente após um pequeno delay
+                                            setTimeout(() => {
+                                                this.pokerService.buscarSessao(session.id).subscribe({
+                                                    next: () => this.startPolling(session.id)
+                                                });
+                                            }, 500);
+                                        }
+                                    }
+                                });
+                            },
+                            error: () => {
+                                // Se falhar ao votar, ainda tenta iniciar polling
+                                this.startPolling(session.id);
+                            }
+                        });
+                    } else {
+                        // Já está na sessão, iniciar polling imediatamente
+                        this.startPolling(session.id);
+                    }
                 }
-            });
-        }
+            },
+            error: () => {
+                // Erro silencioso - não há sessão ativa é um caso normal
+            }
+        });
     }
 
     ngOnDestroy() {
@@ -314,11 +331,50 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         const name = this.tempName().trim();
         if (!name) return;
 
-        this.pokerService.setParticipantName(name);
+        // Não salvar no localStorage global - cada sessão tem seu próprio apelido
+        // Apenas definir no signal para usar nesta sessão
+        this.pokerService.participantName.set(name);
         this.showJoinModal.set(false);
 
         // Verificar se há um ID na rota
         const sessionId = this.route.snapshot.paramMap.get('id');
+
+        // Se estava criando uma sessão, criar agora com o apelido
+        const sessionNameToCreate = this.newSessionName();
+        if (sessionNameToCreate && sessionNameToCreate.trim() !== '') {
+            // Criar sessão e depois votar para persistir o apelido
+            this.pokerService.criarSessao({ name: sessionNameToCreate }).subscribe({
+                next: (session) => {
+                    // Marcar o criador da sessão
+                    if (session && name) {
+                        session.createdBy = name;
+                        this.pokerService.currentSession.set(session);
+                    }
+                    this.newSessionName.set('');
+
+                    // Votar com valor vazio para persistir o apelido na sessão
+                    this.pokerService.votar({
+                        sessionId: session.id,
+                        participantName: name,
+                        value: ''
+                    }).subscribe({
+                        next: () => {
+                            // Recarregar sessão para ter o apelido persistido
+                            this.pokerService.buscarSessao(session.id).subscribe({
+                                next: () => {
+                                    this.startPolling(session.id);
+                                }
+                            });
+                        },
+                        error: () => {
+                            // Mesmo se falhar, iniciar polling
+                            this.startPolling(session.id);
+                        }
+                    });
+                }
+            });
+            return;
+        }
 
         if (sessionId) {
             // Carregar sessão específica pelo ID e adicionar participante
@@ -404,19 +460,13 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
 
     createSession() {
         const name = this.newSessionName().trim() || 'Nova Sessão';
-        const participantName = this.participantName();
 
-        this.pokerService.criarSessao({ name }).subscribe({
-            next: (session) => {
-                // Marcar o criador da sessão
-                if (session && participantName) {
-                    session.createdBy = participantName;
-                    this.pokerService.currentSession.set(session);
-                }
-                this.closeCreateModal();
-                this.startPolling(session.id);
-            }
-        });
+        // Sempre pedir apelido ao criar uma sessão nova (mesmo que já tenha em outra sessão)
+        // Fechar modal de criação e abrir modal de apelido
+        this.closeCreateModal();
+        this.showJoinModal.set(true);
+        // Salvar o nome da sessão temporariamente para criar depois
+        this.newSessionName.set(name);
     }
 
     selectCard(value: PokerValue) {

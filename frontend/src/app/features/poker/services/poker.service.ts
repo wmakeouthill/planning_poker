@@ -12,7 +12,7 @@ export interface JoinSessionResponseDTO {
 @Injectable({ providedIn: 'root' })
 export class PokerService {
     private readonly http = inject(HttpClient);
-    
+
     private get baseUrl(): string {
         return `${getApiUrl()}/v1/poker`;
     }
@@ -92,7 +92,7 @@ export class PokerService {
                     this.currentSession.set(null);
                     return null;
                 }
-                
+
                 const session = response.body!;
                 if (session && session.id) {
                     // Garantir que votes sempre seja um array
@@ -140,14 +140,14 @@ export class PokerService {
                 const session = this.currentSession();
                 if (session) {
                     const hasVoted = !!(dto.value && dto.value.trim() !== '');
-                    
+
                     // Atualiza o voto na sessão local imediatamente
-                    let votes: Vote[] = session.votes.map(v => 
-                        v.participantName === dto.participantName 
+                    let votes: Vote[] = session.votes.map(v =>
+                        v.participantName === dto.participantName
                             ? { ...v, value: dto.value || '', hasVoted: hasVoted }
                             : v
                     );
-                    
+
                     // Se não existe voto para este participante, adiciona
                     if (!votes.some(v => v.participantName === dto.participantName)) {
                         votes.push({
@@ -158,12 +158,12 @@ export class PokerService {
                             hasVoted: hasVoted
                         });
                     }
-                    
+
                     this.currentSession.set({
                         ...session,
                         votes
                     });
-                    
+
                     // Busca atualização completa do servidor
                     this.buscarSessao(session.id).subscribe();
                 }
@@ -197,7 +197,7 @@ export class PokerService {
         if (status) {
             url += `&status=${status}`;
         }
-        
+
         return this.http.get<PageResponse<PokerSession>>(url).pipe(
             tap({
                 next: () => this.loading.set(false),
@@ -216,14 +216,13 @@ export class PokerService {
 
     setParticipantName(name: string): void {
         this.participantName.set(name);
-        localStorage.setItem('poker_participant_name', name);
+        // Não salvar no localStorage - cada sessão tem seu próprio apelido persistido
+        // O apelido será recuperado do backend quando entrar na sessão
     }
 
     loadParticipantName(): void {
-        const saved = localStorage.getItem('poker_participant_name');
-        if (saved) {
-            this.participantName.set(saved);
-        }
+        // Não carregar do localStorage - o apelido será recuperado do backend
+        // quando entrar na sessão específica
     }
 
     // Polling para atualização em tempo real

@@ -31,7 +31,12 @@ export class PokerJoinComponent implements OnInit {
         }
 
         this.pokerService.entrarPorInviteCode(inviteCode).subscribe({
-            next: ({ sessionId }) => {
+            next: ({ sessionId, apelido }) => {
+                // Se o backend retornou um apelido, usar ele (persistido na sessão)
+                // Caso contrário, o componente poker-room vai pedir o apelido
+                if (apelido && apelido.trim() !== '') {
+                    this.pokerService.setParticipantName(apelido);
+                }
                 this.router.navigate(['/poker', sessionId]);
             },
             error: () => {

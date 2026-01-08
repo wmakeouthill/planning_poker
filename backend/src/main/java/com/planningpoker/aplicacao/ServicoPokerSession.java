@@ -67,7 +67,7 @@ public class ServicoPokerSession {
             // Se foi fornecido um participantName, usar como apelido
             participant = new PokerSessionParticipant(session, usuario, participantName);
             participant = participantRepository.save(participant);
-            log.info("Participante criado automaticamente para sessão {} e usuário {} com apelido {}", 
+            log.info("Participante criado automaticamente para sessão {} e usuário {} com apelido {}",
                     id, usuario.getId(), participantName);
         } else {
             participant = participantOpt.get();
@@ -75,7 +75,7 @@ public class ServicoPokerSession {
             if (participant.getApelido() == null && participantName != null && !participantName.trim().isEmpty()) {
                 participant.setApelido(participantName);
                 participant = participantRepository.save(participant);
-                log.info("Apelido atualizado para participante da sessão {} e usuário {}: {}", 
+                log.info("Apelido atualizado para participante da sessão {} e usuário {}: {}",
                         id, usuario.getId(), participantName);
             }
         }
@@ -128,16 +128,32 @@ public class ServicoPokerSession {
             // Usar o participantName como apelido
             participant = new PokerSessionParticipant(session, usuario, dto.participantName());
             participant = participantRepository.save(participant);
-            log.info("Participante criado automaticamente para sessão {} e usuário {} ao votar com apelido {}", 
+            log.info("Participante criado automaticamente para sessão {} e usuário {} ao votar com apelido {}",
                     dto.sessionId(), usuario.getId(), dto.participantName());
         } else {
             participant = participantOpt.get();
-            // Se o participante já existe mas não tem apelido ou o apelido é diferente, atualizar
+            String apelidoAntigo = participant.getApelido();
+            // Se o participante já existe mas não tem apelido ou o apelido é diferente,
+            // atualizar
             if (participant.getApelido() == null || !participant.getApelido().equals(dto.participantName())) {
                 participant.setApelido(dto.participantName());
                 participant = participantRepository.save(participant);
-                log.info("Apelido atualizado para participante da sessão {} e usuário {}: {}", 
+                log.info("Apelido atualizado para participante da sessão {} e usuário {}: {}",
                         dto.sessionId(), usuario.getId(), dto.participantName());
+
+                // Se o apelido mudou, atualizar votos antigos que usam o apelido antigo
+                if (apelidoAntigo != null && !apelidoAntigo.equals(dto.participantName())) {
+                    var sessionWithVotes = sessionRepository.findByIdWithVotes(dto.sessionId())
+                            .orElse(session);
+                    sessionWithVotes.getVotes().stream()
+                            .filter(v -> v.getParticipantName().equals(apelidoAntigo))
+                            .forEach(v -> {
+                                v.setParticipantName(dto.participantName());
+                                voteRepository.save(v);
+                                log.info("Atualizado participantName do voto {} de '{}' para '{}'",
+                                        v.getId(), apelidoAntigo, dto.participantName());
+                            });
+                }
             }
         }
 
@@ -145,9 +161,16 @@ public class ServicoPokerSession {
             throw new BusinessException("A sessão não está aberta para votação");
         }
 
+        // Usar o apelido persistido do participante (não o dto.participantName que pode
+        // variar)
+        String apelidoParaVoto = participant.getApelido() != null && !participant.getApelido().trim().isEmpty()
+                ? participant.getApelido()
+                : dto.participantName(); // Fallback se não tiver apelido
+
         // Verifica se já votou e atualiza ou cria novo voto
+        // Buscar pelo apelido persistido, não pelo dto.participantName
         Optional<Vote> existingVote = voteRepository
-                .findBySessionIdAndParticipantName(dto.sessionId(), dto.participantName());
+                .findBySessionIdAndParticipantName(dto.sessionId(), apelidoParaVoto);
 
         Vote vote;
         if (existingVote.isPresent()) {
@@ -155,18 +178,23 @@ public class ServicoPokerSession {
             // Se o valor for vazio, remove o voto (desmarca)
             if (dto.value() == null || dto.value().trim().isEmpty()) {
                 vote.setValue(null);
-                log.info("Removendo voto para: {}", dto.participantName());
+                log.info("Removendo voto para: {}", apelidoParaVoto);
             } else {
                 vote.setValue(dto.value());
-                log.info("Atualizando voto existente para: {}", dto.participantName());
+                log.info("Atualizando voto existente para: {}", apelidoParaVoto);
+            }
+            // Garantir que o participantName do voto está usando o apelido persistido
+            if (!vote.getParticipantName().equals(apelidoParaVoto)) {
+                vote.setParticipantName(apelidoParaVoto);
             }
         } else {
             // Se o valor for vazio na primeira vez, cria voto vazio (participante entra na
             // mesa)
-            vote = new Vote(dto.participantName(),
+            // Usar o apelido persistido ao invés do dto.participantName
+            vote = new Vote(apelidoParaVoto,
                     dto.value() != null && !dto.value().trim().isEmpty() ? dto.value() : null);
             session.addVote(vote);
-            log.info("Criando voto para: {}", dto.participantName());
+            log.info("Criando voto para: {}", apelidoParaVoto);
         }
 
         var savedVote = voteRepository.save(vote);
@@ -266,7 +294,7 @@ public class ServicoPokerSession {
                                 (existing, replacement) -> existing));
 
         List<PokerSessionDTO> dtos = sessionsPage.getContent().stream()
-                .map(session -> toDTO(session, null, votesBySessionId.getOrDefault(session.getId(), List.of()), 
+                .map(session -> toDTO(session, null, votesBySessionId.getOrDefault(session.getId(), List.of()),
                         apelidosBySessionId.getOrDefault(session.getId(), null)))
                 .toList();
 
@@ -281,7 +309,8 @@ public class ServicoPokerSession {
         return toDTO(session, participantName, session.getVotes(), participantApelido);
     }
 
-    private PokerSessionDTO toDTO(PokerSession session, String participantName, List<Vote> votesEntity, String participantApelido) {
+    private PokerSessionDTO toDTO(PokerSession session, String participantName, List<Vote> votesEntity,
+            String participantApelido) {
         var voteDtos = votesEntity.stream()
                 .map(v -> new VoteDTO(
                         v.getId(),
@@ -321,7 +350,7 @@ public class ServicoPokerSession {
             apelido = usuario.getNome() != null ? usuario.getNome() : null;
             var participant = new PokerSessionParticipant(session, usuario, apelido);
             participant = participantRepository.save(participant);
-            log.info("Participante criado para sessão {} e usuário {} com apelido {}", 
+            log.info("Participante criado para sessão {} e usuário {} com apelido {}",
                     session.getId(), usuario.getId(), apelido);
         } else {
             apelido = participantOpt.get().getApelido();
