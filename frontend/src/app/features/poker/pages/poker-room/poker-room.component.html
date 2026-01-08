@@ -5,17 +5,25 @@
     <!-- Header -->
     <header class="room-header">
         <div>
-            <h1 class="page-title">Poker Planning</h1>
+            <h1 class="page-title">
+                @if (session()) {
+                {{ session()!.name }}
+                } @else {
+                Poker Planning
+                }
+            </h1>
             <p class="page-subtitle">
                 @if (session()) {
-                {{ session()!.name }} •
-                @if (session()!.status === 'VOTING') {
-                Votação em andamento
-                } @else if (session()!.status === 'REVEALED') {
-                Votos revelados
-                } @else {
-                Sessão encerrada
-                }
+                <span class="session-mode-badge">{{ sessionModeName() }}</span>
+                <span class="session-status">
+                    @if (session()!.status === 'VOTING') {
+                    • Votação em andamento
+                    } @else if (session()!.status === 'REVEALED') {
+                    • Votos revelados
+                    } @else {
+                    • Sessão encerrada
+                    }
+                </span>
                 } @else {
                 Crie ou entre em uma sessão
                 }
@@ -83,7 +91,6 @@
                     }
 
                     @if (!hasParticipants()) {
-                    <!-- Mensagem quando não há participantes ainda -->
                     <div class="no-participants-message">
                         <p>Aguardando participantes...</p>
                         <p class="debug-info">Total: {{ totalParticipants() }} | Votaram: {{ votedCount() }}</p>

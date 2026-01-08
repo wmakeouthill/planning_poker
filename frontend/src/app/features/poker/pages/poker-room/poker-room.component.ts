@@ -103,6 +103,13 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         return hasVotes;
     });
 
+    // Nome formatado do modo do jogo
+    readonly sessionModeName = computed(() => {
+        const session = this.session();
+        if (!session) return '';
+        return session.mode === 'PRIORITY_VOTING' ? 'Votação de Prioridade' : 'Estimativa de Esforço';
+    });
+
     readonly myVote = computed(() => {
         const session = this.session();
         const name = this.participantName();
@@ -643,62 +650,39 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
     }
 
     private getVotingCardPosition(index: number, total: number): { top: string; left: string; rotation: string; namePosition: 'top' | 'bottom' } {
-        // Posicionar participantes em círculo AO REDOR da mesa (não dentro)
-        // Raio muito maior para ficar próximo da borda da tela
-        let baseRadius: number;
+        // Posicionar participantes em círculo ao redor da mesa
+        // O posicionamento é relativo à mesa (0% = borda esquerda/topo, 100% = borda direita/baixo)
+        // Valores > 100% ou < 0% ficam fora da mesa
+        
+        // Raio base para ficar ao redor da mesa (fora dela)
+        let baseRadiusX = 65; // Raio horizontal (%)
+        let baseRadiusY = 75; // Raio vertical (%)
 
-        // Ajustar raio baseado no número de participantes - valores AINDA MAIORES para ficar bem mais afastado do centro
+        // Ajustar raio baseado no número de participantes
         if (total <= 2) {
-            baseRadius = 76;
+            baseRadiusX = 60;
+            baseRadiusY = 70;
         } else if (total <= 4) {
-            baseRadius = 78;
+            baseRadiusX = 62;
+            baseRadiusY = 72;
         } else if (total <= 6) {
-            baseRadius = 80;
+            baseRadiusX = 65;
+            baseRadiusY = 75;
         } else if (total <= 8) {
-            baseRadius = 82;
-        } else if (total <= 10) {
-            baseRadius = 84;
+            baseRadiusX = 68;
+            baseRadiusY = 78;
         } else {
-            // Para muitos participantes, aumentar o raio gradualmente
-            baseRadius = 84 + Math.min((total - 10) * 0.2, 4);
-        }
-
-        // Ajuste responsivo baseado no tamanho da tela e altura (para evitar cortes)
-        if (typeof window !== 'undefined') {
-            const screenWidth = window.innerWidth;
-            const screenHeight = window.innerHeight;
-
-            // Ajuste baseado na largura
-            if (screenWidth < 480) {
-                // Mobile muito pequeno - reduzir mais para evitar cortes
-                baseRadius *= 0.88;
-            } else if (screenWidth < 768) {
-                // Mobile - reduzir um pouco
-                baseRadius *= 0.92;
-            } else if (screenWidth < 1024) {
-                // Tablet - reduzir pouco
-                baseRadius *= 0.96;
-            }
-
-            // Ajuste adicional baseado na altura (para evitar cortes verticais)
-            // Se a tela for muito baixa (landscape ou telas pequenas), reduzir mais
-            if (screenHeight < 600) {
-                baseRadius *= 0.90; // Reduzir mais em telas baixas
-            } else if (screenHeight < 800) {
-                baseRadius *= 0.94; // Reduzir um pouco em telas médias
-            }
+            baseRadiusX = 70;
+            baseRadiusY = 80;
         }
 
         // Calcular ângulo uniformemente distribuído
         // Começar do topo (-Math.PI/2) e distribuir uniformemente
         const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
 
-        // Usar formato elíptico para melhor visualização
-        const radiusX = baseRadius; // % do container
-        const radiusY = baseRadius * 0.85; // Ajuste para formato elíptico
-
-        const x = 50 + radiusX * Math.cos(angle);
-        const y = 50 + radiusY * Math.sin(angle);
+        // Posicionar ao redor do centro da mesa (50%, 50%)
+        const x = 50 + baseRadiusX * Math.cos(angle);
+        const y = 50 + baseRadiusY * Math.sin(angle);
 
         // Determinar posição do nome:
         // - Se a carta está na metade INFERIOR (y > 50%), nome aparece EM CIMA (top)
