@@ -20,7 +20,8 @@ export interface PokerSessionUpdate {
     }>;
     averageVote: number | null;
     revealedAt: string | null;
-    eventType: 'VOTE' | 'REVEAL' | 'RESET' | 'JOIN';
+    eventType: 'VOTE' | 'REVEAL' | 'RESET' | 'JOIN' | 'CLOSED';
+    novaSessaoId: number | null; // ID da nova sessão quando nova rodada é criada
 }
 
 export interface AnimationEvent {
@@ -194,7 +195,7 @@ export class PokerWebSocketService implements OnDestroy {
         this.client.subscribe(destination, (message: IMessage) => {
             try {
                 const update: PokerSessionUpdate = JSON.parse(message.body);
-                console.log('[WebSocket] Atualização recebida:', update.eventType);
+                console.log('[WebSocket] Atualização recebida:', update.eventType, update.novaSessaoId ? `(nova sessão: ${update.novaSessaoId})` : '');
 
                 // Converter DTO para PokerSession
                 const session: PokerSession = {
@@ -215,7 +216,8 @@ export class PokerWebSocketService implements OnDestroy {
                     averageVote: update.averageVote,
                     createdAt: '',
                     revealedAt: update.revealedAt,
-                    createdBy: undefined
+                    createdBy: undefined,
+                    novaSessaoId: update.novaSessaoId
                 };
 
                 this.sessionUpdate.set(session);

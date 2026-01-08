@@ -9,13 +9,13 @@ import java.util.List;
  * DTO para atualizações de sessão via WebSocket.
  */
 public record PokerSessionUpdateDTO(
-        Long id,
-        String name,
-        SessionStatus status,
-        List<VoteDTO> votes,
-        Double averageVote,
-        LocalDateTime revealedAt,
-        String eventType // "VOTE", "REVEAL", "RESET", "JOIN"
+                Long id,
+                String name,
+                SessionStatus status,
+                List<VoteDTO> votes,
+                Double averageVote,
+                LocalDateTime revealedAt,
+                String eventType, // "VOTE", "REVEAL", "RESET", "JOIN", "CLOSED"
+                Long novaSessaoId // ID da nova sessão (quando nova rodada é criada)
 ) {
 }
-

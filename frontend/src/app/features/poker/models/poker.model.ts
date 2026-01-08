@@ -14,6 +14,7 @@ export interface PokerSession {
     revealedAt: string | null;
     createdBy?: string; // Nome do criador/mestre da sessão
     participantApelido?: string | null; // Apelido do participante atual na sessão
+    novaSessaoId?: number | null; // ID da nova sessão quando nova rodada é criada
 }
 
 export interface Vote {

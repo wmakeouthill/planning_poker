@@ -51,7 +51,7 @@ public class ServicoPokerSession {
         return sessionRepository.findAtivasPorUsuario(usuario.getId(), SessionStatus.VOTING);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public PokerSessionDTO buscarPorId(Long id, String participantName) {
         var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
         log.debug("Buscando sessão por id: {} para usuário {}", id, usuario.getId());
@@ -59,31 +59,19 @@ public class ServicoPokerSession {
         var session = sessionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PokerSession", id));
 
-        // Verificar se o usuário já é participante, se não for, criar automaticamente
+        // Verificar se o usuário já é participante (NÃO criar automaticamente)
         var participantOpt = participantRepository.findBySessionIdAndUsuarioId(id, usuario.getId());
-        PokerSessionParticipant participant;
-        if (participantOpt.isEmpty()) {
-            // Criar participante automaticamente quando alguém tenta acessar a sessão
-            // Se foi fornecido um participantName, usar como apelido
-            participant = new PokerSessionParticipant(session, usuario, participantName);
-            participant = participantRepository.save(participant);
-            log.info("Participante criado automaticamente para sessão {} e usuário {} com apelido {}",
-                    id, usuario.getId(), participantName);
-        } else {
-            participant = participantOpt.get();
-            // Se o participante já existe mas não tem apelido e foi fornecido um, atualizar
-            if (participant.getApelido() == null && participantName != null && !participantName.trim().isEmpty()) {
-                participant.setApelido(participantName);
-                participant = participantRepository.save(participant);
-                log.info("Apelido atualizado para participante da sessão {} e usuário {}: {}",
-                        id, usuario.getId(), participantName);
-            }
+        String apelido = null;
+        
+        if (participantOpt.isPresent()) {
+            apelido = participantOpt.get().getApelido();
         }
+        // Se não é participante, o frontend vai pedir o apelido e criar via votar()
 
         var sessionWithVotes = sessionRepository.findByIdWithVotes(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PokerSession", id));
 
-        return toDTO(sessionWithVotes, participantName, participant.getApelido());
+        return toDTO(sessionWithVotes, participantName, apelido);
     }
 
     @Transactional
@@ -102,13 +90,9 @@ public class ServicoPokerSession {
 
         var savedSession = sessionRepository.save(session);
 
-        // Criador entra automaticamente como participante (controle de
-        // acesso/histórico)
-        if (!participantRepository.existsBySessionIdAndUsuarioId(savedSession.getId(), usuario.getId())) {
-            // Usar o nome do usuário como apelido padrão
-            var apelido = usuario.getNome() != null ? usuario.getNome() : null;
-            participantRepository.save(new PokerSessionParticipant(savedSession, usuario, apelido));
-        }
+        // NÃO criar participante automaticamente aqui
+        // O participante será criado quando votar pela primeira vez (com o apelido escolhido pelo usuário)
+        // Isso garante que o frontend sempre peça o apelido antes de entrar na sessão
 
         return savedSession;
     }
@@ -293,9 +277,9 @@ public class ServicoPokerSession {
             voteRepository.save(voto);
         }
 
-        // Publicar evento para notificação via WebSocket (notifica sessão antiga que
-        // foi fechada)
-        eventPublisher.publishEvent(new PokerSessionEvent(this, sessionIdAtual, "CLOSED"));
+        // Publicar evento para notificação via WebSocket (notifica sessão antiga que foi fechada)
+        // Incluir ID da nova sessão para que os participantes sejam redirecionados automaticamente
+        eventPublisher.publishEvent(new PokerSessionEvent(this, sessionIdAtual, "CLOSED", novaSessaoId));
         // Publicar evento para nova sessão
         eventPublisher.publishEvent(new PokerSessionEvent(this, novaSessaoId, "CREATED"));
 
@@ -428,18 +412,18 @@ public class ServicoPokerSession {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "PokerSession com inviteCode " + inviteCode + " não encontrado"));
 
+        // Verificar se o usuário já é participante da sessão
         var participantOpt = participantRepository.findBySessionIdAndUsuarioId(session.getId(), usuario.getId());
         String apelido = null;
-        if (participantOpt.isEmpty()) {
-            // Usar o nome do usuário como apelido padrão
-            apelido = usuario.getNome() != null ? usuario.getNome() : null;
-            var participant = new PokerSessionParticipant(session, usuario, apelido);
-            participant = participantRepository.save(participant);
-            log.info("Participante criado para sessão {} e usuário {} com apelido {}",
-                    session.getId(), usuario.getId(), apelido);
-        } else {
+        
+        if (participantOpt.isPresent()) {
+            // Se já é participante, retornar o apelido existente
             apelido = participantOpt.get().getApelido();
+            log.info("Participante já existe na sessão {} com apelido {}", session.getId(), apelido);
         }
+        // Se não é participante ainda, NÃO criar automaticamente
+        // O participante será criado quando votar pela primeira vez (com o apelido escolhido)
+        // O frontend deve mostrar o modal para pedir o apelido
 
         return new JoinSessionResponseDTO(session.getId(), apelido);
     }

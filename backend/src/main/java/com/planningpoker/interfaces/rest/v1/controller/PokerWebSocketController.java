@@ -28,6 +28,8 @@ public class PokerWebSocketController {
      */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handlePokerSessionEvent(PokerSessionEvent event) {
+        log.info("Processando evento {} para sessão {} (novaSessaoId={})",
+                event.getEventType(), event.getSessionId(), event.getNovaSessaoId());
         try {
             var dto = servicoPokerSession.buscarPorId(event.getSessionId(), null);
             var update = new PokerSessionUpdateDTO(
@@ -37,12 +39,14 @@ public class PokerWebSocketController {
                     dto.votes(),
                     dto.averageVote(),
                     dto.revealedAt(),
-                    event.getEventType());
+                    event.getEventType(),
+                    event.getNovaSessaoId());
 
             messagingTemplate.convertAndSend("/topic/poker/session/" + event.getSessionId(), update);
-            log.debug("Notificação enviada para sessão {}: {}", event.getSessionId(), event.getEventType());
+            log.info("Notificação WebSocket enviada para sessão {}: {} (novaSessaoId={}, status={})",
+                    event.getSessionId(), event.getEventType(), event.getNovaSessaoId(), dto.status());
         } catch (Exception e) {
-            log.error("Erro ao notificar atualização da sessão {}", event.getSessionId(), e);
+            log.error("Erro ao notificar atualização da sessão {}: {}", event.getSessionId(), e.getMessage(), e);
         }
     }
 }

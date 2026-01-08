@@ -162,6 +162,27 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         effect(() => {
             const wsUpdate = this.wsService.sessionUpdate();
             if (wsUpdate) {
+                console.log('[WebSocket] Update recebido:', {
+                    id: wsUpdate.id,
+                    status: wsUpdate.status,
+                    novaSessaoId: wsUpdate.novaSessaoId
+                });
+
+                // Verificar se o mestre criou uma nova rodada (novaSessaoId presente)
+                // Nesse caso, TODOS os participantes devem ser redirecionados para a nova sessão
+                if (wsUpdate.status === 'CLOSED' && wsUpdate.novaSessaoId) {
+                    const novaSessaoId = wsUpdate.novaSessaoId;
+                    console.log('[WebSocket] Nova rodada criada! Redirecionando todos para:', novaSessaoId);
+
+                    // Parar polling antes de redirecionar (WebSocket será reconectado à nova sessão)
+                    this.pollingSubscription?.unsubscribe();
+
+                    // Navegar para nova sessão (usando replaceUrl para evitar problemas de navegação)
+                    this.router.navigate(['/poker', novaSessaoId], { replaceUrl: true }).then(() => {
+                        console.log('[WebSocket] Navegação concluída para sessão:', novaSessaoId);
+                    });
+                    return;
+                }
                 // Atualizar sessão quando receber atualização via WebSocket
                 this.pokerService.currentSession.set(wsUpdate);
             }
@@ -201,16 +222,25 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         this.pokerService.participantName.set('');
         localStorage.removeItem('poker_participant_name');
 
-        // Verificar se há um ID na rota
-        const sessionId = this.route.snapshot.paramMap.get('id');
+        // Observar mudanças no parâmetro da rota (importante para redirecionamento de nova rodada)
+        this.route.paramMap.subscribe(params => {
+            const sessionId = params.get('id');
 
-        if (sessionId) {
-            // Carregar sessão específica pelo ID
-            this.carregarSessaoPorId(Number(sessionId));
-        } else {
-            // Comportamento padrão: buscar sessão ativa
-            this.carregarSessaoAtiva();
-        }
+            console.log('[PokerRoom] Parâmetro de rota mudou, sessionId:', sessionId);
+
+            // Limpar estado anterior ao mudar de sessão (WebSocket será reconectado à nova sessão)
+            this.pollingSubscription?.unsubscribe();
+            this.pokerService.currentSession.set(null);
+            this.selectedCard.set(null);
+
+            if (sessionId) {
+                // Carregar sessão específica pelo ID
+                this.carregarSessaoPorId(Number(sessionId));
+            } else {
+                // Comportamento padrão: buscar sessão ativa
+                this.carregarSessaoAtiva();
+            }
+        });
     }
 
     private carregarSessaoPorId(sessionId: number): void {
@@ -543,12 +573,8 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         // Criar nova rodada mantendo os mesmos participantes (preserva histórico)
         this.pokerService.novaRodada(session.id).subscribe({
             next: (novaSessao) => {
-                // Navegar para a nova sessão
-                this.router.navigate(['/poker', novaSessao.id]);
-                // Reconectar WebSocket para nova sessão
-                this.wsService.disconnect();
-                this.pollingSubscription?.unsubscribe();
-                this.startPolling(novaSessao.id);
+                // Navegar para a nova sessão (paramMap.subscribe vai detectar e carregar)
+                this.router.navigate(['/poker', novaSessao.id], { replaceUrl: true });
             }
         });
     }
@@ -588,10 +614,12 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                             }
                         }
 
-                        // Se a sessão foi fechada, parar polling e desconectar WebSocket
+                        // Se a sessão foi fechada, parar polling mas NÃO desconectar WebSocket
+                        // O WebSocket pode receber evento com novaSessaoId para redirecionar
                         if (updatedSession.status === 'CLOSED') {
+                            console.log('[Polling] Sessão fechada via polling, aguardando WebSocket para possível redirecionamento');
                             this.pollingSubscription?.unsubscribe();
-                            this.wsService.disconnect();
+                            // NÃO desconectar WebSocket - deixar o effect tratar o redirecionamento
                         }
                     },
                     error: (error) => {
