@@ -5,9 +5,10 @@ import com.planningpoker.dominio.dto.PokerSessionUpdateDTO;
 import com.planningpoker.dominio.event.PokerSessionEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * Componente para notificações WebSocket em tempo real.
@@ -23,8 +24,9 @@ public class PokerWebSocketController {
 
     /**
      * Escuta eventos de atualização de sessão e notifica os clientes.
+     * Usa AFTER_COMMIT para garantir que os dados já foram persistidos no banco.
      */
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handlePokerSessionEvent(PokerSessionEvent event) {
         try {
             var dto = servicoPokerSession.buscarPorId(event.getSessionId(), null);

@@ -2,18 +2,18 @@
     <div class="progress-header">
         <h3 class="progress-title">Participantes</h3>
         <div class="progress-stats">
-            <span class="stats-text">{{ votedCount() }}/{{ totalParticipants() }}</span>
-            <span class="stats-percentage">({{ progressPercentage() }}%)</span>
+            <span class="stats-text">{{ votedCount }}/{{ totalParticipants }}</span>
+            <span class="stats-percentage">({{ progressPercentage }}%)</span>
         </div>
     </div>
 
     <div class="progress-bar-container">
-        <div class="progress-bar" [style.width.%]="progressPercentage()"></div>
+        <div class="progress-bar" [style.width.%]="progressPercentage"></div>
     </div>
 
     <div class="participants-list">
         @for (vote of votes; track vote.id) {
-        <div class="participant-item" 
+        <div class="participant-item"
              [class.voted]="vote.hasVoted"
              [class.revealed]="vote.revealed && status === 'REVEALED'">
             <div class="participant-info">

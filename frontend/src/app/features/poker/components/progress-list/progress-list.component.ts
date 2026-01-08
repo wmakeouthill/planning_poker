@@ -1,4 +1,4 @@
-import { Component, Input, computed } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Vote } from '../../models/poker.model';
 
@@ -17,18 +17,19 @@ export class ProgressListComponent {
     @Input({ required: true }) votes: Vote[] = [];
     @Input() status: 'VOTING' | 'REVEALED' | 'CLOSED' = 'VOTING';
 
-    readonly votedCount = computed(() => {
+    // Usar getters em vez de computed - @Input não é signal, computed não reage a mudanças de @Input
+    get votedCount(): number {
         return this.votes.filter(v => v.hasVoted).length;
-    });
+    }
 
-    readonly totalParticipants = computed(() => {
+    get totalParticipants(): number {
         return this.votes.length;
-    });
+    }
 
-    readonly progressPercentage = computed(() => {
-        const total = this.totalParticipants();
+    get progressPercentage(): number {
+        const total = this.totalParticipants;
         if (total === 0) return 0;
-        return Math.round((this.votedCount() / total) * 100);
-    });
+        return Math.round((this.votedCount / total) * 100);
+    }
 }
 

@@ -232,8 +232,8 @@ public class ServicoPokerSession {
         var session = sessionRepository.findByIdWithVotes(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("PokerSession", sessionId));
 
+        // Resetar apenas os valores dos votos, mantendo os participantes na sessão
         session.resetVotes();
-        voteRepository.deleteBySessionId(sessionId);
 
         var savedSession = sessionRepository.save(session);
 

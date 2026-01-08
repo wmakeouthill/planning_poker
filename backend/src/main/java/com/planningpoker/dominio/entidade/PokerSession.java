@@ -93,7 +93,11 @@ public class PokerSession implements Serializable {
     }
 
     public void resetVotes() {
-        this.votes.clear();
+        // Apenas resetar os valores dos votos, mantendo os participantes na sessão
+        votes.forEach(v -> {
+            v.setValue(null);
+            v.setRevealed(false);
+        });
         this.status = SessionStatus.VOTING;
         this.revealedAt = null;
     }
