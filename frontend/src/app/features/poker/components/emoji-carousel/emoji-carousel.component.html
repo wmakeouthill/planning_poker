@@ -1,0 +1,11 @@
+<div class="emoji-carousel">
+    <span class="carousel-label">Arremessar:</span>
+    <div class="emoji-list">
+        @for (emoji of emojis; track emoji) {
+        <button class="emoji-btn" [class.selected]="emoji === selectedEmoji" (click)="selectEmoji(emoji)"
+            [title]="'Selecionar ' + emoji">
+            {{ emoji }}
+        </button>
+        }
+    </div>
+</div>

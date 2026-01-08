@@ -12,11 +12,12 @@ import { PokerSession } from '../models/poker.model';
 export class PokerWebSocketService {
     // Signals para eventos em tempo real
     readonly sessionUpdate = signal<PokerSession | null>(null);
-    readonly animationEvent = signal<{ 
+    readonly animationEvent = signal<{
         id: string;
-        type: 'paper-ball' | 'emoji'; 
-        participantName: string; 
+        type: 'paper-ball' | 'emoji';
+        participantName: string;
         targetCard?: string;
+        emoji?: string;
         startX: number;
         startY: number;
         endX: number;
@@ -27,28 +28,31 @@ export class PokerWebSocketService {
      * Envia evento de animação (emoji ou bola de papel).
      */
     sendAnimation(
-        type: 'paper-ball' | 'emoji', 
-        participantName: string, 
+        type: 'paper-ball' | 'emoji',
+        participantName: string,
         startX: number,
         startY: number,
         endX: number,
         endY: number,
-        targetCard?: string
+        targetCard?: string,
+        emoji?: string
     ): void {
-        this.animationEvent.set({ 
-            id: `${Date.now()}-${Math.random()}`,
-            type, 
-            participantName, 
+        const id = `${Date.now()}-${Math.random()}`;
+        this.animationEvent.set({
+            id,
+            type,
+            participantName,
             targetCard,
+            emoji,
             startX,
             startY,
             endX,
             endY
         });
-        
+
         // Limpar após 3 segundos
         setTimeout(() => {
-            if (this.animationEvent()?.id === `${Date.now()}-${Math.random()}`) {
+            if (this.animationEvent()?.id === id) {
                 this.animationEvent.set(null);
             }
         }, 3000);

@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, output } from '@angular/core';
 import { Vote } from '../../models/poker.model';
 
 /**
@@ -16,5 +16,11 @@ export class ParticipantCardComponent {
     @Input({ required: true }) participantName!: string;
     @Input() top = '50%';
     @Input() left = '50%';
-}
 
+    readonly cardClicked = output<{ vote: Vote; element: HTMLElement }>();
+
+    onCardClick(event: MouseEvent): void {
+        const target = event.currentTarget as HTMLElement;
+        this.cardClicked.emit({ vote: this.vote, element: target });
+    }
+}

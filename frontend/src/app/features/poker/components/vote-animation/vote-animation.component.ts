@@ -1,57 +1,38 @@
-import { Component, signal, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { PokerWebSocketService } from '../../services/poker-websocket.service';
+import { Component, signal } from '@angular/core';
 
 /**
- * Componente Dumb para exibir animações de voto (bola de papel, emojis).
- * Responsabilidade única: apresentar animações visuais.
+ * Componente para exibir animações de emoji arremessado.
+ * Simplificado para evitar loops de reatividade.
  */
 @Component({
     selector: 'app-vote-animation',
     standalone: true,
-    imports: [CommonModule],
     templateUrl: './vote-animation.component.html',
     styleUrl: './vote-animation.component.css'
 })
 export class VoteAnimationComponent {
     readonly activeAnimations = signal<Array<{
         id: string;
-        type: 'paper-ball' | 'emoji';
-        participantName: string;
+        emoji: string;
         startX: number;
         startY: number;
         endX: number;
         endY: number;
     }>>([]);
 
-    constructor(private wsService: PokerWebSocketService) {
-        // Observa eventos de animação
-        effect(() => {
-            const event = this.wsService.animationEvent();
-            if (event) {
-                this.addAnimation(event);
-            }
-        });
-    }
+    /**
+     * Adiciona uma animação de emoji.
+     */
+    throwEmoji(emoji: string, startX: number, startY: number, endX: number, endY: number): void {
+        const id = `${Date.now()}-${Math.random()}`;
+        const animation = { id, emoji, startX, startY, endX, endY };
 
-    private addAnimation(event: {
-        id: string;
-        type: 'paper-ball' | 'emoji';
-        participantName: string;
-        startX: number;
-        startY: number;
-        endX: number;
-        endY: number;
-    }): void {
-        const animations = this.activeAnimations();
-        this.activeAnimations.set([...animations, event]);
-        
-        // Remover após animação
+        this.activeAnimations.update(arr => [...arr, animation]);
+
+        // Remover após 2.5 segundos
         setTimeout(() => {
-            this.activeAnimations.set(
-                this.activeAnimations().filter(a => a.id !== event.id)
-            );
-        }, 2000);
+            this.activeAnimations.update(arr => arr.filter(a => a.id !== id));
+        }, 2500);
     }
 }
 

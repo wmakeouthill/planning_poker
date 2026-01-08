@@ -11,6 +11,7 @@
 
 .participant-card .card-flip-container {
     pointer-events: auto;
+    cursor: pointer;
 }
 
 .card-flip-container {
@@ -38,7 +39,7 @@
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     border-radius: 10px;
-    box-shadow: 
+    box-shadow:
         0 4px 8px rgba(0, 0, 0, 0.3),
         0 2px 4px rgba(0, 0, 0, 0.2);
     transition: all 0.3s ease;
@@ -51,7 +52,7 @@
     transform: rotateY(0deg);
     position: relative;
     overflow: hidden;
-    box-shadow: 
+    box-shadow:
         0 6px 12px rgba(0, 0, 0, 0.4),
         0 3px 6px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -64,7 +65,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: 
+    background:
         radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
         radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.15) 0%, transparent 50%);
     pointer-events: none;
@@ -85,13 +86,11 @@
 .pattern-bottom {
     width: 100%;
     height: 14px;
-    background: repeating-linear-gradient(
-        90deg,
-        rgba(139, 92, 246, 0.4) 0px,
-        rgba(139, 92, 246, 0.4) 5px,
-        transparent 5px,
-        transparent 10px
-    );
+    background: repeating-linear-gradient(90deg,
+            rgba(139, 92, 246, 0.4) 0px,
+            rgba(139, 92, 246, 0.4) 5px,
+            transparent 5px,
+            transparent 10px);
     border-radius: 3px;
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
 }
@@ -109,7 +108,7 @@
 .participant-card.voted .card-back {
     background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
     border-color: #a78bfa;
-    box-shadow: 
+    box-shadow:
         0 6px 16px rgba(139, 92, 246, 0.5),
         0 3px 8px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -120,29 +119,29 @@
     0% {
         transform: scale(1);
     }
+
     50% {
         transform: scale(1.05);
     }
+
     100% {
         transform: scale(1);
     }
 }
 
 .participant-card.voted .card-back::before {
-    background: 
+    background:
         radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.2) 0%, transparent 50%),
         radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
 }
 
 .participant-card.voted .card-back .pattern-top,
 .participant-card.voted .card-back .pattern-bottom {
-    background: repeating-linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0.4) 0px,
-        rgba(255, 255, 255, 0.4) 5px,
-        transparent 5px,
-        transparent 10px
-    );
+    background: repeating-linear-gradient(90deg,
+            rgba(255, 255, 255, 0.4) 0px,
+            rgba(255, 255, 255, 0.4) 5px,
+            transparent 5px,
+            transparent 10px);
 }
 
 .participant-card.voted .card-back .pattern-center {
@@ -173,7 +172,7 @@
     padding: 8px;
     position: relative;
     overflow: hidden;
-    box-shadow: 
+    box-shadow:
         0 6px 12px rgba(0, 0, 0, 0.3),
         0 3px 6px rgba(0, 0, 0, 0.2),
         inset 0 1px 0 rgba(255, 255, 255, 0.5);
@@ -186,7 +185,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: 
+    background:
         radial-gradient(circle at 20% 30%, rgba(251, 191, 36, 0.1) 0%, transparent 50%),
         radial-gradient(circle at 80% 70%, rgba(251, 191, 36, 0.08) 0%, transparent 50%);
     pointer-events: none;
@@ -195,7 +194,7 @@
 .participant-card.revealed .card-front {
     background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
     border-color: #fbbf24;
-    box-shadow: 
+    box-shadow:
         0 8px 24px rgba(251, 191, 36, 0.6),
         0 4px 12px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.4),
@@ -208,9 +207,11 @@
         transform: rotateY(180deg) scale(0.95);
         opacity: 0.8;
     }
+
     50% {
         transform: rotateY(180deg) scale(1.05);
     }
+
     100% {
         transform: rotateY(180deg) scale(1);
         opacity: 1;
@@ -252,7 +253,7 @@
     font-weight: 700;
     font-size: 2.5rem;
     line-height: 1;
-    text-shadow: 
+    text-shadow:
         0 2px 4px rgba(0, 0, 0, 0.15),
         0 1px 2px rgba(0, 0, 0, 0.1);
     letter-spacing: -0.02em;
@@ -285,7 +286,8 @@
     padding: 0.25rem 0.75rem;
     border-radius: 12px;
     white-space: nowrap;
-    max-width: 100px;
+    max-width: 120px;
+    /* Increased from 100px */
     overflow: hidden;
     text-overflow: ellipsis;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -341,4 +343,3 @@
         max-width: 70px;
     }
 }
-

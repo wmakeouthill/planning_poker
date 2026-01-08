@@ -1,15 +1,16 @@
-import { Component, inject, OnInit, OnDestroy, signal, computed, effect } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed, effect, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PokerService } from '../../services/poker.service';
 import { PokerWebSocketService } from '../../services/poker-websocket.service';
-import { POKER_VALUES, PokerValue } from '../../models/poker.model';
+import { POKER_VALUES, PokerValue, Vote } from '../../models/poker.model';
 import { ParticipantCardComponent } from '../../components/participant-card/participant-card.component';
 import { MasterPanelComponent } from '../../components/master-panel/master-panel.component';
 import { TableCenterComponent } from '../../components/table-center/table-center.component';
 import { VoteAnimationComponent } from '../../components/vote-animation/vote-animation.component';
 import { InviteLinkComponent } from '../../components/invite-link/invite-link.component';
 import { ProgressListComponent } from '../../components/progress-list/progress-list.component';
+import { EmojiCarouselComponent } from '../../components/emoji-carousel/emoji-carousel.component';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -22,7 +23,8 @@ import { Subscription } from 'rxjs';
         TableCenterComponent,
         VoteAnimationComponent,
         InviteLinkComponent,
-        ProgressListComponent
+        ProgressListComponent,
+        EmojiCarouselComponent
     ],
     templateUrl: './poker-room.component.html',
     styleUrl: './poker-room.component.css'
@@ -33,6 +35,9 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
     private readonly route = inject(ActivatedRoute);
     private readonly router = inject(Router);
     private pollingSubscription?: Subscription;
+
+    // ViewChild para acessar componente de animação diretamente
+    private readonly voteAnimation = viewChild(VoteAnimationComponent);
 
     readonly POKER_VALUES = POKER_VALUES;
     readonly session = this.pokerService.currentSession;
@@ -46,6 +51,7 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
     });
 
     readonly selectedCard = signal<PokerValue | null>(null);
+    readonly selectedEmoji = signal<string>('🗞️');
     readonly showJoinModal = signal(false);
     readonly showCreateModal = signal(false);
     readonly newSessionName = signal('');
@@ -115,7 +121,7 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         effect(() => {
             const myVote = this.myVote();
             const session = this.session();
-            
+
             if (session?.status === 'VOTING') {
                 if (myVote?.hasVoted && myVote.value) {
                     this.selectedCard.set(myVote.value as PokerValue);
@@ -133,7 +139,7 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
 
         // Verificar se há um ID na rota
         const sessionId = this.route.snapshot.paramMap.get('id');
-        
+
         if (sessionId) {
             // Carregar sessão específica pelo ID
             this.carregarSessaoPorId(Number(sessionId));
@@ -271,10 +277,10 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
 
         this.pokerService.setParticipantName(name);
         this.showJoinModal.set(false);
-        
+
         // Verificar se há um ID na rota
         const sessionId = this.route.snapshot.paramMap.get('id');
-        
+
         if (sessionId) {
             // Carregar sessão específica pelo ID e adicionar participante
             this.pokerService.buscarSessao(Number(sessionId)).subscribe({
@@ -419,11 +425,11 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
         const startX = side === 3 ? 0 : side === 1 ? window.innerWidth : Math.random() * window.innerWidth;
         const startY = side === 0 ? 0 : side === 2 ? window.innerHeight : Math.random() * window.innerHeight;
-        
+
         // Posição do card do participante (centro da tela como aproximação)
         const endX = window.innerWidth / 2;
         const endY = window.innerHeight / 2;
-        
+
         this.wsService.sendAnimation(
             'paper-ball',
             this.participantName()!,
@@ -457,7 +463,7 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
 
     private startPolling(sessionId: number) {
         this.pollingSubscription?.unsubscribe();
-        
+
         // Buscar sessão imediatamente antes de iniciar polling
         this.pokerService.buscarSessao(sessionId).subscribe({
             next: (session) => {
@@ -467,7 +473,7 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                 }
                 // Atualizar sessão imediatamente para mostrar dados atuais
                 this.pokerService.currentSession.set(session);
-                
+
                 // Iniciar polling após carregar sessão inicial
                 this.pollingSubscription = this.pokerService.startPolling(sessionId).subscribe({
                     next: (updatedSession) => {
@@ -477,7 +483,7 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                             updatedSession.votes = [];
                         }
                         this.pokerService.currentSession.set(updatedSession);
-                        
+
                         // Se a sessão foi fechada, parar polling
                         if (updatedSession.status === 'CLOSED') {
                             this.pollingSubscription?.unsubscribe();
@@ -512,5 +518,62 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
             left: `${x}%`,
             rotation: `${(angle * 180 / Math.PI) + 90}deg`
         };
+    }
+
+    /**
+     * Atualiza o emoji selecionado no carrossel.
+     */
+    onEmojiSelected(emoji: string): void {
+        this.selectedEmoji.set(emoji);
+    }
+
+    /**
+     * Dispara animação de emoji ao clicar em uma carta de participante.
+     */
+    onParticipantCardClick(event: { vote: Vote; element: HTMLElement }): void {
+        // Não arremessar emoji em si mesmo
+        if (event.vote.participantName === this.participantName()) {
+            return;
+        }
+
+        // Obter posição do card clicado
+        const rect = event.element.getBoundingClientRect();
+        const endX = rect.left + rect.width / 2;
+        const endY = rect.top + rect.height / 2;
+
+        // Posição aleatória de origem (lados da tela)
+        const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+        let startX: number;
+        let startY: number;
+
+        switch (side) {
+            case 0: // top
+                startX = Math.random() * window.innerWidth;
+                startY = -50;
+                break;
+            case 1: // right
+                startX = window.innerWidth + 50;
+                startY = Math.random() * window.innerHeight;
+                break;
+            case 2: // bottom
+                startX = Math.random() * window.innerWidth;
+                startY = window.innerHeight + 50;
+                break;
+            default: // left
+                startX = -50;
+                startY = Math.random() * window.innerHeight;
+        }
+
+        // Chamar throwEmoji diretamente no componente de animação
+        const animationComponent = this.voteAnimation();
+        if (animationComponent) {
+            animationComponent.throwEmoji(
+                this.selectedEmoji(),
+                startX,
+                startY,
+                endX,
+                endY
+            );
+        }
     }
 }

@@ -1,7 +1,7 @@
 <div class="poker-room-page fade-in">
     <!-- Componente de animações -->
     <app-vote-animation />
-    
+
     <!-- Header -->
     <header class="room-header">
         <div>
@@ -70,48 +70,38 @@
             <div class="poker-table-container">
                 <div class="poker-table">
                     <!-- Center info -->
-                    <app-table-center 
-                        [status]="session()!.status"
-                        [votedCount]="votedCount()"
-                        [totalParticipants]="totalParticipants()"
-                        [averageVote]="session()!.averageVote" />
+                    <app-table-center [status]="session()!.status" [votedCount]="votedCount()"
+                        [totalParticipants]="totalParticipants()" [averageVote]="session()!.averageVote" />
 
                     <!-- Participants around the table with flip cards -->
                     @if (hasParticipants()) {
-                        @for (vote of session()!.votes; track vote.id; let i = $index) {
-                        @let pos = getCardPosition(i, session()!.votes.length);
-                        <app-participant-card 
-                            [vote]="vote"
-                            [participantName]="participantName()!"
-                            [top]="pos.top"
-                            [left]="pos.left" />
-                        }
+                    @for (vote of session()!.votes; track vote.id; let i = $index) {
+                    @let pos = getCardPosition(i, session()!.votes.length);
+                    <app-participant-card [vote]="vote" [participantName]="participantName()!" [top]="pos.top"
+                        [left]="pos.left" (cardClicked)="onParticipantCardClick($event)" />
+                    }
                     } @else {
-                        <!-- Mensagem quando não há participantes ainda -->
-                        <div class="no-participants-message">
-                            <p>Aguardando participantes...</p>
-                            <p class="debug-info">Total: {{ totalParticipants() }} | Votaram: {{ votedCount() }}</p>
-                        </div>
+                    <!-- Mensagem quando não há participantes ainda -->
+                    <div class="no-participants-message">
+                        <p>Aguardando participantes...</p>
+                        <p class="debug-info">Total: {{ totalParticipants() }} | Votaram: {{ votedCount() }}</p>
+                    </div>
                     }
                 </div>
             </div>
 
             <!-- Progress List (Right Sidebar) -->
-            <app-progress-list 
-                [votes]="session()!.votes"
-                [status]="session()!.status" />
+            <app-progress-list [votes]="session()!.votes" [status]="session()!.status" />
 
             <!-- Master Panel (Right Sidebar - Only when revealed) -->
             @if (isMaster() && session()!.status === 'REVEALED') {
-            <app-master-panel 
-                [votes]="revealedVotes()"
-                [averageVote]="session()!.averageVote" />
+            <app-master-panel [votes]="revealedVotes()" [averageVote]="session()!.averageVote" />
             }
         </div>
 
         <!-- Controls -->
         <div class="controls">
-            @if (session()!.status === 'VOTING') {
+            @if (session()!.status === 'VOTING' && isMaster()) {
             <button class="btn-reveal" (click)="revealVotes()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -131,17 +121,19 @@
             }
         </div>
 
-        <!-- Voting Cards -->
+        <!-- Voting Cards with Emoji Carousel -->
         @if (session()!.status === 'VOTING' && participantName()) {
-        <div class="voting-cards">
-            @for (value of POKER_VALUES; track value) {
-            <button class="voting-card" 
-                [class.selected]="selectedCard() === value || (myVote()?.value === value && myVote()?.hasVoted)"
-                (click)="selectCard(value)"
-                [disabled]="loading()">
-                <span class="card-value">{{ value }}</span>
-            </button>
-            }
+        <div class="voting-section">
+            <div class="voting-cards">
+                @for (value of POKER_VALUES; track value) {
+                <button class="voting-card"
+                    [class.selected]="selectedCard() === value || (myVote()?.value === value && myVote()?.hasVoted)"
+                    (click)="selectCard(value)" [disabled]="loading()">
+                    <span class="card-value">{{ value }}</span>
+                </button>
+                }
+            </div>
+            <app-emoji-carousel [selectedEmoji]="selectedEmoji()" (emojiSelected)="onEmojiSelected($event)" />
         </div>
         }
         }
