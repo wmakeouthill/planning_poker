@@ -522,7 +522,13 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         const endX = window.innerWidth / 2;
         const endY = window.innerHeight / 2;
 
-        // Enviar via HTTP (será propagado via WebSocket pelo backend)
+        // Disparar animação localmente primeiro
+        const animationComponent = this.voteAnimation();
+        if (animationComponent) {
+            animationComponent.throwPaperBall(startX, startY, endX, endY);
+        }
+
+        // Enviar via HTTP (será propagado via WebSocket pelo backend para outros usuários)
         this.wsService.sendAnimation({
             sessionId: session.id,
             type: 'paper-ball',
@@ -675,7 +681,13 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                 startY = Math.random() * window.innerHeight;
         }
 
-        // Enviar via HTTP (será propagado via WebSocket pelo backend)
+        // Disparar animação localmente primeiro
+        const animationComponent = this.voteAnimation();
+        if (animationComponent) {
+            animationComponent.throwEmoji(this.selectedEmoji(), startX, startY, endX, endY);
+        }
+
+        // Enviar via HTTP (será propagado via WebSocket pelo backend para outros usuários)
         this.wsService.sendAnimation({
             sessionId: session.id,
             type: 'emoji',
