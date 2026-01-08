@@ -13,7 +13,7 @@
     <div class="command-group">
         <div class="group-label">{{ group.label }}</div>
         @for (command of group.commands; track command.id) {
-        <button class="command-item" [class.selected]="isSelected(command)" (click)="selectCommand(command)"
+        <button #commandBtn class="command-item" [class.selected]="isSelected(command)" (click)="selectCommand(command)"
             (mouseenter)="selectedIndex.set(getOverallIndex(command))">
             <span class="command-icon">{{ command.icon }}</span>
             <div class="command-content">

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, computed, HostListener, ElementRef, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, computed, HostListener, ElementRef, inject, ViewChildren, QueryList } from '@angular/core';
 
 export interface SlashCommand {
     id: string;
@@ -55,6 +55,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 })
 export class SlashCommandMenuComponent {
     private readonly elementRef = inject(ElementRef);
+    @ViewChildren('commandBtn') commandButtons!: QueryList<ElementRef<HTMLButtonElement>>;
 
     @Input() set filter(value: string) {
         this.filterText.set(value.toLowerCase());
@@ -102,10 +103,12 @@ export class SlashCommandMenuComponent {
             case 'ArrowDown':
                 event.preventDefault();
                 this.selectedIndex.update(i => (i + 1) % commands.length);
+                this.scrollToSelected();
                 break;
             case 'ArrowUp':
                 event.preventDefault();
                 this.selectedIndex.update(i => (i - 1 + commands.length) % commands.length);
+                this.scrollToSelected();
                 break;
             case 'Enter':
                 event.preventDefault();
@@ -116,6 +119,19 @@ export class SlashCommandMenuComponent {
                 this.closed.emit();
                 break;
         }
+    }
+
+    private scrollToSelected() {
+        setTimeout(() => {
+            const buttons = this.commandButtons?.toArray();
+            const selectedBtn = buttons?.[this.selectedIndex()];
+            if (selectedBtn) {
+                selectedBtn.nativeElement.scrollIntoView({
+                    block: 'nearest',
+                    behavior: 'smooth'
+                });
+            }
+        }, 0);
     }
 
     selectCommand(command: SlashCommand) {

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, Input, ViewChild, ElementRef, HostListener, QueryList, ViewChildren, AfterViewInit } from '@angular/core';
+import { Component, inject, OnInit, signal, Input, ViewChild, ElementRef, HostListener, QueryList, ViewChildren, AfterViewInit, AfterViewChecked } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { BoardService } from '../../services/board.service';
@@ -12,7 +12,7 @@ import { SlashCommandMenuComponent, SlashCommand, ContentBlock, BlockType } from
     templateUrl: './board-editor.component.html',
     styleUrl: './board-editor.component.css'
 })
-export class BoardEditorComponent implements OnInit, AfterViewInit {
+export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChecked {
     @Input() id!: string;
     @ViewChildren('blockElement') blockElements!: QueryList<ElementRef<HTMLDivElement>>;
 
@@ -31,6 +31,10 @@ export class BoardEditorComponent implements OnInit, AfterViewInit {
     readonly blocks = signal<ContentBlock[]>([{ id: this.generateId(), type: 'paragraph', content: '' }]);
     readonly focusedBlockId = signal<string | null>(null);
 
+    // Track which blocks need content sync
+    private needsContentSync = new Set<string>();
+    private initialSyncDone = false;
+
     // Slash command state
     readonly showSlashMenu = signal(false);
     readonly slashMenuPosition = signal({ top: 0, left: 0 });
@@ -44,13 +48,43 @@ export class BoardEditorComponent implements OnInit, AfterViewInit {
     }
 
     ngAfterViewInit() {
-        // Focus first block if empty
+        // Initial sync for all blocks after load
+        this.syncAllBlockContents();
+    }
+
+    ngAfterViewChecked() {
+        // Sync only blocks that need it
+        if (this.needsContentSync.size > 0) {
+            this.syncPendingBlocks();
+        }
+    }
+
+    private syncAllBlockContents() {
         setTimeout(() => {
-            const blocks = this.blocks();
-            if (blocks.length === 1 && !blocks[0].content) {
-                this.focusBlock(blocks[0].id);
-            }
-        }, 100);
+            this.blockElements?.forEach(el => {
+                const blockId = el.nativeElement.dataset['blockId'];
+                const block = this.blocks().find(b => b.id === blockId);
+                if (block && el.nativeElement.innerText !== block.content) {
+                    el.nativeElement.innerText = block.content;
+                }
+            });
+            this.initialSyncDone = true;
+        }, 0);
+    }
+
+    private syncPendingBlocks() {
+        const toSync = Array.from(this.needsContentSync);
+        this.needsContentSync.clear();
+
+        setTimeout(() => {
+            toSync.forEach(blockId => {
+                const blockEl = this.blockElements?.find(el => el.nativeElement.dataset['blockId'] === blockId);
+                const block = this.blocks().find(b => b.id === blockId);
+                if (blockEl && block && blockEl.nativeElement.innerText !== block.content) {
+                    blockEl.nativeElement.innerText = block.content;
+                }
+            });
+        }, 0);
     }
 
     private generateId(): string {
@@ -67,7 +101,10 @@ export class BoardEditorComponent implements OnInit, AfterViewInit {
 
                 // Parse content to blocks
                 if (board.content) {
-                    this.blocks.set(this.parseContentToBlocks(board.content));
+                    const parsedBlocks = this.parseContentToBlocks(board.content);
+                    this.blocks.set(parsedBlocks);
+                    // Mark all for initial sync
+                    parsedBlocks.forEach(b => this.needsContentSync.add(b.id));
                 } else {
                     this.blocks.set([{ id: this.generateId(), type: 'paragraph', content: '' }]);
                 }
@@ -271,7 +308,10 @@ export class BoardEditorComponent implements OnInit, AfterViewInit {
             const beforeCursor = fullText.substring(0, cursorPos);
             const afterCursor = fullText.substring(cursorPos);
 
-            // Update current block with content before cursor
+            // Update current block content in DOM directly (avoid sync loop)
+            target.innerText = beforeCursor;
+
+            // Update signal state
             this.blocks.update(blocks =>
                 blocks.map(b => b.id === blockId ? { ...b, content: beforeCursor } : b)
             );
@@ -282,6 +322,9 @@ export class BoardEditorComponent implements OnInit, AfterViewInit {
                 type: 'paragraph',
                 content: afterCursor
             };
+
+            // Mark new block for content sync
+            this.needsContentSync.add(newBlock.id);
 
             this.blocks.update(blocks => {
                 const index = blocks.findIndex(b => b.id === blockId);
