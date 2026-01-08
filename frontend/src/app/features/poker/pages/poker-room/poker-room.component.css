@@ -77,7 +77,7 @@
     display: flex;
     gap: 1rem;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible; /* Permitir que cartas sejam exibidas completamente */
     align-items: flex-start;
 }
 
@@ -396,6 +396,12 @@
     .poker-table {
         max-width: 350px; /* Mesa menor em tablets também */
     }
+
+    .poker-table-container {
+        /* Padding ajustado para tablets */
+        padding: 5.5rem 1.5rem 5.5rem 1.5rem;
+        overflow: visible;
+    }
 }
 
 /* Responsividade - Mobile */
@@ -432,10 +438,11 @@
     }
 
     .poker-table-container {
-        /* Padding maior no mobile também para acomodar cartas */
-        padding: 4rem 1rem 4rem 1rem;
+        /* Padding maior no mobile também para acomodar cartas - ajustado para evitar cortes */
+        padding: 5rem 1rem 5rem 1rem;
         flex: 1 1 auto;
         min-height: 0;
+        overflow: visible; /* Garantir que cartas não sejam cortadas */
     }
 
     .poker-table {
@@ -494,6 +501,12 @@
         font-size: 1.25rem;
     }
 
+    .poker-table-container {
+        /* Padding ainda maior em telas muito pequenas para evitar cortes */
+        padding: 4rem 0.75rem 4rem 0.75rem;
+        overflow: visible;
+    }
+
     .poker-table {
         border-width: 6px;
     }
@@ -543,9 +556,10 @@
     }
 
     .poker-table-container {
-        /* Padding adequado para landscape mobile */
-        padding: 3rem 0.5rem 3rem 0.5rem;
+        /* Padding adequado para landscape mobile - mais espaço vertical */
+        padding: 3.5rem 0.5rem 3.5rem 0.5rem;
         flex: 1 1 auto;
+        overflow: visible; /* Garantir que cartas não sejam cortadas */
     }
 
     .poker-table {
@@ -577,5 +591,6 @@
 
     .poker-main-layout {
         flex-direction: column;
+        overflow: visible; /* Garantir que cartas não sejam cortadas em landscape */
     }
 }

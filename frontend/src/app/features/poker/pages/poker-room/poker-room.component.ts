@@ -621,29 +621,45 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         // Raio muito maior para ficar próximo da borda da tela
         let baseRadius: number;
 
-        // Ajustar raio baseado no número de participantes - valores MUITO maiores para ficar bem próximo da borda
+        // Ajustar raio baseado no número de participantes - valores AINDA MAIORES para ficar bem mais afastado do centro
         if (total <= 2) {
-            baseRadius = 72;
-        } else if (total <= 4) {
-            baseRadius = 74;
-        } else if (total <= 6) {
             baseRadius = 76;
-        } else if (total <= 8) {
+        } else if (total <= 4) {
             baseRadius = 78;
-        } else if (total <= 10) {
+        } else if (total <= 6) {
             baseRadius = 80;
+        } else if (total <= 8) {
+            baseRadius = 82;
+        } else if (total <= 10) {
+            baseRadius = 84;
         } else {
             // Para muitos participantes, aumentar o raio gradualmente
-            baseRadius = 80 + Math.min((total - 10) * 0.2, 5);
+            baseRadius = 84 + Math.min((total - 10) * 0.2, 4);
         }
 
-        // Ajuste responsivo baseado no tamanho da tela (menos redução para manter próximo da borda)
+        // Ajuste responsivo baseado no tamanho da tela e altura (para evitar cortes)
         if (typeof window !== 'undefined') {
             const screenWidth = window.innerWidth;
-            if (screenWidth < 768) {
-                baseRadius *= 0.93; // Reduzir menos em telas menores
+            const screenHeight = window.innerHeight;
+            
+            // Ajuste baseado na largura
+            if (screenWidth < 480) {
+                // Mobile muito pequeno - reduzir mais para evitar cortes
+                baseRadius *= 0.88;
+            } else if (screenWidth < 768) {
+                // Mobile - reduzir um pouco
+                baseRadius *= 0.92;
             } else if (screenWidth < 1024) {
-                baseRadius *= 0.97;
+                // Tablet - reduzir pouco
+                baseRadius *= 0.96;
+            }
+            
+            // Ajuste adicional baseado na altura (para evitar cortes verticais)
+            // Se a tela for muito baixa (landscape ou telas pequenas), reduzir mais
+            if (screenHeight < 600) {
+                baseRadius *= 0.90; // Reduzir mais em telas baixas
+            } else if (screenHeight < 800) {
+                baseRadius *= 0.94; // Reduzir um pouco em telas médias
             }
         }
 
