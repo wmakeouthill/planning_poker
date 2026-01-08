@@ -196,6 +196,18 @@ export class PokerService {
         );
     }
 
+    novaRodada(sessionId: number): Observable<PokerSession> {
+        return this.http.post<PokerSession>(`${this.baseUrl}/sessions/${sessionId}/nova-rodada`, {}).pipe(
+            tap((session) => {
+                // Garantir que votes sempre seja um array
+                if (!session.votes) {
+                    session.votes = [];
+                }
+                this.currentSession.set(session);
+            })
+        );
+    }
+
     listarHistorico(page: number = 0, size: number = 10, status?: 'VOTING' | 'REVEALED' | 'CLOSED'): Observable<PageResponse<PokerSession>> {
         this.loading.set(true);
         let url = `${this.baseUrl}/sessions/history?page=${page}&size=${size}`;

@@ -655,6 +655,115 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
         );
     }
 
+    onDividerClick(blockId: string) {
+        const blocks = this.blocks();
+        const index = blocks.findIndex(b => b.id === blockId);
+
+        // Se há um próximo bloco e não é divider, foca nele
+        if (index < blocks.length - 1 && blocks[index + 1].type !== 'divider') {
+            this.focusBlock(blocks[index + 1].id);
+        } else {
+            // Cria um novo bloco após o divider
+            const newBlock: ContentBlock = {
+                id: this.generateId(),
+                type: 'paragraph',
+                content: ''
+            };
+
+            this.needsContentSync.add(newBlock.id);
+
+            this.blocks.update(bs => {
+                const newBlocks = [...bs];
+                newBlocks.splice(index + 1, 0, newBlock);
+                return newBlocks;
+            });
+
+            this.pushHistory();
+            setTimeout(() => this.focusBlock(newBlock.id), 0);
+        }
+    }
+
+    onDividerKeydown(event: KeyboardEvent, blockId: string) {
+        const blocks = this.blocks();
+        const index = blocks.findIndex(b => b.id === blockId);
+
+        // Enter ou Space - cria novo bloco ou foca próximo
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            this.onDividerClick(blockId);
+            return;
+        }
+
+        // Backspace - deleta o divider
+        if (event.key === 'Backspace') {
+            event.preventDefault();
+            if (blocks.length > 1) {
+                this.blocks.update(bs => bs.filter(b => b.id !== blockId));
+                this.pushHistory();
+
+                // Foca no bloco anterior ou próximo
+                if (index > 0) {
+                    const prevBlock = blocks[index - 1];
+                    if (prevBlock.type !== 'divider') {
+                        setTimeout(() => this.focusBlock(prevBlock.id), 0);
+                    }
+                } else if (index < blocks.length - 1) {
+                    const nextBlock = blocks[index + 1];
+                    if (nextBlock.type !== 'divider') {
+                        setTimeout(() => this.focusBlock(nextBlock.id), 0);
+                    }
+                }
+            }
+            return;
+        }
+
+        // Arrow Up - navega para bloco anterior
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (index > 0) {
+                this.focusBlockOrDivider(blocks[index - 1].id);
+            }
+            return;
+        }
+
+        // Arrow Down - navega para próximo bloco
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            if (index < blocks.length - 1) {
+                this.focusBlockOrDivider(blocks[index + 1].id);
+            }
+            return;
+        }
+    }
+
+    private focusBlockOrDivider(blockId: string) {
+        const block = this.blocks().find(b => b.id === blockId);
+        if (!block) return;
+
+        if (block.type === 'divider') {
+            // Foca no divider via DOM
+            setTimeout(() => {
+                const wrappers = document.querySelectorAll('.block-wrapper');
+                wrappers.forEach(wrapper => {
+                    const divider = wrapper.querySelector('.divider-line') as HTMLElement;
+                    if (divider) {
+                        const handle = wrapper.querySelector('.block-handle .block-icon');
+                        if (handle?.textContent?.trim() === '—') {
+                            // Verificar se é o bloco certo usando o índice
+                            const allBlocks = this.blocks();
+                            const wrapperIndex = Array.from(wrappers).indexOf(wrapper);
+                            if (allBlocks[wrapperIndex]?.id === blockId) {
+                                divider.focus();
+                            }
+                        }
+                    }
+                });
+            }, 0);
+        } else {
+            this.focusBlock(blockId);
+        }
+    }
+
     // ========== Slash Command Logic ==========
 
     private openSlashMenu(element: HTMLElement, blockId: string) {

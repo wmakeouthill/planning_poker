@@ -539,7 +539,18 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         const session = this.session();
         if (!session) return;
         this.selectedCard.set(null);
-        this.pokerService.resetarVotos(session.id).subscribe();
+
+        // Criar nova rodada mantendo os mesmos participantes (preserva histórico)
+        this.pokerService.novaRodada(session.id).subscribe({
+            next: (novaSessao) => {
+                // Navegar para a nova sessão
+                this.router.navigate(['/poker', novaSessao.id]);
+                // Reconectar WebSocket para nova sessão
+                this.wsService.disconnect();
+                this.pollingSubscription?.unsubscribe();
+                this.startPolling(novaSessao.id);
+            }
+        });
     }
 
     private startPolling(sessionId: number) {

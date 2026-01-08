@@ -209,8 +209,7 @@ public class ServicoPokerSession {
                 savedVote.getParticipantName(),
                 savedVote.getValue(),
                 savedVote.isRevealed(),
-                savedVote.hasVoted()
-        );
+                savedVote.hasVoted());
     }
 
     @Transactional
@@ -255,6 +254,77 @@ public class ServicoPokerSession {
         var updatedSession = sessionRepository.findByIdWithVotes(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("PokerSession", sessionId));
         return toDTO(updatedSession, null);
+    }
+
+    @Transactional
+    public PokerSessionDTO novaRodada(Long sessionIdAtual) {
+        log.info("Criando nova rodada a partir da sessão: {}", sessionIdAtual);
+        var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
+
+        // Buscar sessão atual com votos e participantes
+        var sessaoAtual = sessionRepository.findByIdWithVotes(sessionIdAtual)
+                .orElseThrow(() -> new ResourceNotFoundException("PokerSession", sessionIdAtual));
+
+        // Buscar participantes da sessão atual
+        var participantesAtuais = participantRepository.findBySessionId(sessionIdAtual);
+
+        // Fechar a sessão atual para preservar no histórico
+        sessaoAtual.close();
+        sessionRepository.save(sessaoAtual);
+
+        // Criar nova sessão com mesmo nome (adicionando contador de rodada) e mesmo
+        // modo
+        String nomeNovo = gerarNomeNovaRodada(sessaoAtual.getName());
+        var novaSessaoTemp = new PokerSession(nomeNovo, sessaoAtual.getMode());
+        final var novaSessao = sessionRepository.save(novaSessaoTemp);
+        final Long novaSessaoId = novaSessao.getId();
+
+        // Copiar participantes para a nova sessão
+        for (var participanteAntigo : participantesAtuais) {
+            var novoParticipante = new PokerSessionParticipant(
+                    novaSessao,
+                    participanteAntigo.getUsuario(),
+                    participanteAntigo.getApelido());
+            participantRepository.save(novoParticipante);
+
+            // Criar voto vazio para cada participante (para aparecer na mesa)
+            var voto = new Vote(participanteAntigo.getApelido(), null);
+            novaSessao.addVote(voto);
+            voteRepository.save(voto);
+        }
+
+        // Publicar evento para notificação via WebSocket (notifica sessão antiga que
+        // foi fechada)
+        eventPublisher.publishEvent(new PokerSessionEvent(this, sessionIdAtual, "CLOSED"));
+        // Publicar evento para nova sessão
+        eventPublisher.publishEvent(new PokerSessionEvent(this, novaSessaoId, "CREATED"));
+
+        log.info("Nova rodada criada: {} (id={}) com {} participantes",
+                nomeNovo, novaSessaoId, participantesAtuais.size());
+
+        // Buscar apelido do usuário atual na nova sessão
+        var participantOpt = participantRepository.findBySessionIdAndUsuarioId(novaSessaoId, usuario.getId());
+        String apelidoUsuario = participantOpt.map(PokerSessionParticipant::getApelido).orElse(null);
+
+        // Buscar sessão atualizada e retornar como DTO
+        var sessaoAtualizada = sessionRepository.findByIdWithVotes(novaSessaoId)
+                .orElseThrow(() -> new ResourceNotFoundException("PokerSession", novaSessaoId));
+        return toDTO(sessaoAtualizada, null, apelidoUsuario);
+    }
+
+    private String gerarNomeNovaRodada(String nomeAtual) {
+        // Verificar se já tem sufixo de rodada (ex: "Sprint 42 - Rodada 2")
+        var pattern = java.util.regex.Pattern.compile("^(.+?)(?:\\s*-\\s*Rodada\\s*(\\d+))?$");
+        var matcher = pattern.matcher(nomeAtual);
+
+        if (matcher.matches()) {
+            String nomeBase = matcher.group(1).trim();
+            String rodadaStr = matcher.group(2);
+            int proximaRodada = (rodadaStr != null) ? Integer.parseInt(rodadaStr) + 1 : 2;
+            return nomeBase + " - Rodada " + proximaRodada;
+        }
+
+        return nomeAtual + " - Rodada 2";
     }
 
     @Transactional

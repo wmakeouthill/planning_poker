@@ -53,6 +53,11 @@ public class PokerSessionController implements PokerSessionAPI {
     }
 
     @Override
+    public ResponseEntity<PokerSessionDTO> novaRodada(Long id) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(servicoPokerSession.novaRodada(id));
+    }
+
+    @Override
     public ResponseEntity<Void> fecharSessao(Long id) {
         servicoPokerSession.fecharSessao(id);
         return ResponseEntity.noContent().build();

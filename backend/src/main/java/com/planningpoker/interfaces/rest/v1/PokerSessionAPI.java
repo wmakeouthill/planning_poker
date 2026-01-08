@@ -60,6 +60,12 @@ public interface PokerSessionAPI {
         ResponseEntity<PokerSessionDTO> resetarVotos(
                         @Parameter(description = "ID da sessão") @PathVariable Long id);
 
+        @Operation(summary = "Cria nova rodada mantendo os mesmos participantes")
+        @ApiResponse(responseCode = "201", description = "Nova rodada criada com sucesso")
+        @PostMapping("/sessions/{id}/nova-rodada")
+        ResponseEntity<PokerSessionDTO> novaRodada(
+                        @Parameter(description = "ID da sessão atual") @PathVariable Long id);
+
         @Operation(summary = "Fecha uma sessão")
         @ApiResponse(responseCode = "204", description = "Sessão fechada com sucesso")
         @PostMapping("/sessions/{id}/close")

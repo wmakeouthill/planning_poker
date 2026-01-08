@@ -113,7 +113,9 @@
 
             <!-- Block content -->
             @if (block.type === 'divider') {
-            <hr class="divider-line" />
+            <hr class="divider-line" tabindex="0"
+                (click)="onDividerClick(block.id)"
+                (keydown)="onDividerKeydown($event, block.id)" />
             } @else {
             <div #blockElement [attr.data-block-id]="block.id" [class]="getBlockClasses(block)"
                 [class.checked]="block.type === 'todo' && block.checked"
