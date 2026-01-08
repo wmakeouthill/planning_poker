@@ -2,8 +2,7 @@
     <!-- Dropdown de categorias -->
     <div class="category-dropdown">
         <button class="category-btn" (click)="toggleDropdown()">
-            Categorias
-            <span class="arrow">▼</span>
+            📂
         </button>
 
         @if (showDropdown()) {
@@ -26,9 +25,9 @@
 
     <span class="carousel-label">Arremessar:</span>
 
-    <!-- Emojis rápidos -->
-    <div class="quick-emojis">
-        @for (emoji of quickEmojis; track emoji) {
+    <!-- Todos os emojis roláveis -->
+    <div class="emoji-list" #emojiList>
+        @for (emoji of allEmojis; track emoji) {
         <button class="emoji-btn" [class.selected]="emoji === selectedEmoji" (click)="selectEmoji(emoji)">
             {{ emoji }}
         </button>

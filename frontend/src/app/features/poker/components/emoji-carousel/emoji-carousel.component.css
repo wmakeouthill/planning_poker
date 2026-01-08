@@ -54,7 +54,7 @@
     max-height: 350px;
     overflow-y: auto;
     box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
-    z-index: 100;
+    z-index: 1000;
 }
 
 .category-section {
@@ -91,6 +91,27 @@
 .quick-emojis {
     display: flex;
     gap: 0.25rem;
+}
+
+/* Lista rolável de todos os emojis */
+.emoji-list {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    overflow-y: visible;
+    flex: 1;
+    padding: 4px 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    cursor: grab;
+}
+
+.emoji-list:active {
+    cursor: grabbing;
+}
+
+.emoji-list::-webkit-scrollbar {
+    display: none;
 }
 
 .emoji-btn {
