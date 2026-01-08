@@ -15,5 +15,6 @@
     <include file="db/changelog/changes/007-add-invitecode-and-session-participants.xml"/>
     <include file="db/changelog/changes/008-add-board-owner.xml"/>
     <include file="db/changelog/changes/009-add-apelido-to-session-participant.xml"/>
+    <include file="db/changelog/changes/010-add-session-mode.xml"/>
 
 </databaseChangeLog>

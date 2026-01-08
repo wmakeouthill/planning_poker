@@ -1,5 +1,7 @@
 package com.planningpoker.dominio.dto;
 
+import com.planningpoker.dominio.enums.SessionMode;
+
 import jakarta.validation.constraints.NotBlank;
 
 /**
@@ -7,5 +9,6 @@ import jakarta.validation.constraints.NotBlank;
  */
 public record CreateSessionDTO(
         String name,
-        Long storyId) {
+        Long storyId,
+        SessionMode mode) {
 }

@@ -1,5 +1,6 @@
 package com.planningpoker.dominio.dto;
 
+import com.planningpoker.dominio.enums.SessionMode;
 import com.planningpoker.dominio.enums.SessionStatus;
 
 import java.time.LocalDateTime;
@@ -12,6 +13,7 @@ public record PokerSessionDTO(
         Long id,
         String name,
         SessionStatus status,
+        SessionMode mode,
         Long storyId,
         String storyTitle,
         String inviteCode,

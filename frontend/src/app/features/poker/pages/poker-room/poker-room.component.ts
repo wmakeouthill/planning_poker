@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PokerService } from '../../services/poker.service';
 import { PokerWebSocketService } from '../../services/poker-websocket.service';
-import { POKER_VALUES, PokerValue, Vote } from '../../models/poker.model';
+import { POKER_VALUES, PokerValue, Vote, getVotingValues, SessionMode } from '../../models/poker.model';
 import { ParticipantCardComponent } from '../../components/participant-card/participant-card.component';
 import { MasterPanelComponent } from '../../components/master-panel/master-panel.component';
 import { TableCenterComponent } from '../../components/table-center/table-center.component';
@@ -44,18 +44,26 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
     readonly participantName = this.pokerService.participantName;
     readonly loading = this.pokerService.loading;
 
+    // Valores de votação baseados no modo da sessão
+    readonly votingValues = computed(() => {
+        const session = this.session();
+        if (!session) return POKER_VALUES;
+        return getVotingValues(session.mode);
+    });
+
     readonly inviteUrl = computed(() => {
         const session = this.session();
         const code = session?.inviteCode;
         return code ? `${window.location.origin}/poker/join/${code}` : null;
     });
 
-    readonly selectedCard = signal<PokerValue | null>(null);
+    readonly selectedCard = signal<string | null>(null);
     readonly selectedEmoji = signal<string>('🗞️');
     readonly showJoinModal = signal(false);
     readonly showCreateModal = signal(false);
     readonly newSessionName = signal('');
     readonly tempName = signal('');
+    readonly selectedMode = signal<SessionMode>('EFFORT_ESTIMATION');
 
     // Computed values
     readonly hasVoted = computed(() => {
@@ -126,7 +134,7 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
 
             if (session?.status === 'VOTING') {
                 if (myVote?.hasVoted && myVote.value) {
-                    this.selectedCard.set(myVote.value as PokerValue);
+                    this.selectedCard.set(myVote.value);
                 } else if (!myVote?.hasVoted) {
                     this.selectedCard.set(null);
                 }
@@ -343,7 +351,11 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         const sessionNameToCreate = this.newSessionName();
         if (sessionNameToCreate && sessionNameToCreate.trim() !== '') {
             // Criar sessão e depois votar para persistir o apelido
-            this.pokerService.criarSessao({ name: sessionNameToCreate }).subscribe({
+            const mode = this.selectedMode();
+            this.pokerService.criarSessao({
+                name: sessionNameToCreate,
+                mode: mode || 'EFFORT_ESTIMATION'
+            }).subscribe({
                 next: (session) => {
                     // Marcar o criador da sessão
                     if (session && name) {
@@ -452,6 +464,7 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
     openCreateModal() {
         this.showCreateModal.set(true);
         this.newSessionName.set('');
+        this.selectedMode.set('EFFORT_ESTIMATION');
     }
 
     closeCreateModal() {
@@ -469,7 +482,7 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         this.newSessionName.set(name);
     }
 
-    selectCard(value: PokerValue) {
+    selectCard(value: string) {
         const session = this.session();
         if (!session || session.status !== 'VOTING') return;
 
@@ -641,7 +654,7 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         if (typeof window !== 'undefined') {
             const screenWidth = window.innerWidth;
             const screenHeight = window.innerHeight;
-            
+
             // Ajuste baseado na largura
             if (screenWidth < 480) {
                 // Mobile muito pequeno - reduzir mais para evitar cortes
@@ -653,7 +666,7 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                 // Tablet - reduzir pouco
                 baseRadius *= 0.96;
             }
-            
+
             // Ajuste adicional baseado na altura (para evitar cortes verticais)
             // Se a tela for muito baixa (landscape ou telas pequenas), reduzir mais
             if (screenHeight < 600) {

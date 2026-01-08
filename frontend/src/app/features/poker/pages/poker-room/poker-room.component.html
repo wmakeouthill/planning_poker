@@ -125,7 +125,7 @@
         @if (session()!.status === 'VOTING' && participantName()) {
         <div class="voting-section">
             <div class="voting-cards">
-                @for (value of POKER_VALUES; track value) {
+                @for (value of votingValues(); track value) {
                 <button class="voting-card"
                     [class.selected]="selectedCard() === value || (myVote()?.value === value && myVote()?.hasVoted)"
                     (click)="selectCard(value)" [disabled]="loading()">
@@ -185,6 +185,14 @@
                 <input id="sessionName" type="text" class="input-glass" placeholder="Ex: Sprint 42 Planning"
                     [value]="newSessionName()" (input)="newSessionName.set($any($event.target).value)"
                     (keyup.enter)="createSession()" />
+            </div>
+            <div class="form-group">
+                <label for="sessionMode">Modo de votação</label>
+                <select id="sessionMode" class="input-glass" [value]="selectedMode()"
+                    (change)="selectedMode.set($any($event.target).value)">
+                    <option value="EFFORT_ESTIMATION">Estimativa de Esforço</option>
+                    <option value="PRIORITY_VOTING">Priorização (1-12 + ☕)</option>
+                </select>
             </div>
         </div>
 

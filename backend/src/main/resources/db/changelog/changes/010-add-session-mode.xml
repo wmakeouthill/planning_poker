@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="010-add-session-mode" author="planning-poker">
+        <comment>Adiciona coluna COD_MODE na tabela PP_POKER_SESSION para suportar diferentes modos de votação</comment>
+        
+        <addColumn tableName="PP_POKER_SESSION">
+            <column name="COD_MODE" type="VARCHAR(30)" defaultValue="EFFORT_ESTIMATION">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <createIndex tableName="PP_POKER_SESSION" indexName="idx_session_mode">
+            <column name="COD_MODE"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

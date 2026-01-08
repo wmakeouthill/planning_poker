@@ -10,6 +10,7 @@ export interface PokerSessionUpdate {
     id: number;
     name: string;
     status: 'VOTING' | 'REVEALED' | 'CLOSED';
+    mode?: 'EFFORT_ESTIMATION' | 'PRIORITY_VOTING';
     votes: Array<{
         id: number;
         participantName: string;
@@ -200,6 +201,7 @@ export class PokerWebSocketService implements OnDestroy {
                     id: update.id,
                     name: update.name,
                     status: update.status,
+                    mode: update.mode || 'EFFORT_ESTIMATION',
                     storyId: null,
                     storyTitle: null,
                     inviteCode: null,

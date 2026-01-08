@@ -106,6 +106,7 @@ export class PokerService {
                         id: session.id,
                         name: session.name,
                         status: session.status,
+                        mode: session.mode || 'EFFORT_ESTIMATION',
                         storyId: session.storyId || null,
                         storyTitle: session.storyTitle || null,
                         inviteCode: session.inviteCode || null,

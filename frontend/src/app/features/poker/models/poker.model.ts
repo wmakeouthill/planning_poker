@@ -1,7 +1,10 @@
+export type SessionMode = 'EFFORT_ESTIMATION' | 'PRIORITY_VOTING';
+
 export interface PokerSession {
     id: number;
     name: string;
     status: 'VOTING' | 'REVEALED' | 'CLOSED';
+    mode: SessionMode;
     storyId: number | null;
     storyTitle: string | null;
     inviteCode?: string | null;
@@ -24,6 +27,7 @@ export interface Vote {
 export interface CreateSessionDTO {
     name: string;
     storyId?: number;
+    mode?: SessionMode;
 }
 
 export interface VoteRequestDTO {
@@ -32,8 +36,20 @@ export interface VoteRequestDTO {
     value: string;
 }
 
-export const POKER_VALUES = ['0', '½', '1', '2', '3', '5', '8', '13', '21', '?', '☕'] as const;
-export type PokerValue = typeof POKER_VALUES[number];
+// Valores para estimativa de esforço (Fibonacci)
+export const EFFORT_ESTIMATION_VALUES = ['0', '½', '1', '2', '3', '5', '8', '13', '21', '?', '☕'] as const;
+
+// Valores para votação de prioridade (1 a 12 + café)
+export const PRIORITY_VOTING_VALUES = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '☕'] as const;
+
+// Mantém POKER_VALUES para compatibilidade (usa estimativa por padrão)
+export const POKER_VALUES = EFFORT_ESTIMATION_VALUES;
+export type PokerValue = typeof EFFORT_ESTIMATION_VALUES[number] | typeof PRIORITY_VOTING_VALUES[number];
+
+// Função helper para obter valores baseado no modo
+export function getVotingValues(mode: SessionMode): readonly string[] {
+    return mode === 'PRIORITY_VOTING' ? PRIORITY_VOTING_VALUES : EFFORT_ESTIMATION_VALUES;
+}
 
 export interface PageResponse<T> {
     content: T[];

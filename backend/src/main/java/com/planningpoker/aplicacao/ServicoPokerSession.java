@@ -88,10 +88,10 @@ public class ServicoPokerSession {
 
     @Transactional
     public PokerSession criar(CreateSessionDTO dto) {
-        log.info("Criando nova sessão de poker: {}", dto.name());
+        log.info("Criando nova sessão de poker: {} com modo: {}", dto.name(), dto.mode());
         var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
 
-        var session = new PokerSession(dto.name());
+        var session = new PokerSession(dto.name(), dto.mode() != null ? dto.mode() : com.planningpoker.dominio.enums.SessionMode.EFFORT_ESTIMATION);
 
         if (dto.storyId() != null) {
             var story = storyRepository.findByIdAndOwnerId(dto.storyId(), usuario.getId())
@@ -324,6 +324,7 @@ public class ServicoPokerSession {
                 session.getId(),
                 session.getName(),
                 session.getStatus(),
+                session.getMode(),
                 session.getStory() != null ? session.getStory().getId() : null,
                 session.getStory() != null ? session.getStory().getTitle() : null,
                 session.getInviteCode(),
