@@ -54,6 +54,9 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
     readonly slashFilter = signal('');
     private slashBlockId: string | null = null;
 
+    // Highlight pipe for syntax highlighting
+    private readonly highlightPipe = new HighlightPipe();
+
     ngOnInit() {
         if (this.id) {
             this.loadBoard(Number(this.id));
@@ -76,9 +79,17 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
         setTimeout(() => {
             this.blockElements?.forEach(el => {
                 const blockId = el.nativeElement.dataset['blockId'];
+                if (!blockId) return;
+                
                 const block = this.blocks().find(b => b.id === blockId);
-                if (block && el.nativeElement.innerText !== block.content) {
-                    el.nativeElement.innerText = block.content;
+                if (block && typeof block.content === 'string') {
+                    const content = block.content;
+                    // For code blocks, apply highlight if not focused
+                    if (block.type === 'code' && this.focusedBlockId() !== blockId) {
+                        this.applyHighlight(blockId, content, el.nativeElement);
+                    } else if (el.nativeElement.innerText !== content) {
+                        el.nativeElement.innerText = content;
+                    }
                 }
             });
             this.initialSyncDone = true;
@@ -91,10 +102,18 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
 
         setTimeout(() => {
             toSync.forEach(blockId => {
+                if (!blockId) return;
+                
                 const blockEl = this.blockElements?.find(el => el.nativeElement.dataset['blockId'] === blockId);
                 const block = this.blocks().find(b => b.id === blockId);
-                if (blockEl && block && blockEl.nativeElement.innerText !== block.content) {
-                    blockEl.nativeElement.innerText = block.content;
+                if (blockEl && block && typeof block.content === 'string') {
+                    const content = block.content;
+                    // For code blocks, apply highlight if not focused
+                    if (block.type === 'code' && this.focusedBlockId() !== blockId) {
+                        this.applyHighlight(blockId, content, blockEl.nativeElement);
+                    } else if (blockEl.nativeElement.innerText !== content) {
+                        blockEl.nativeElement.innerText = content;
+                    }
                 }
             });
         }, 0);
@@ -359,6 +378,11 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
         setTimeout(() => {
             const blockEl = this.blockElements?.find(el => el.nativeElement.dataset['blockId'] === blockId);
             if (blockEl) {
+                const block = this.blocks().find(b => b.id === blockId);
+                // For code blocks, remove highlight to allow easy editing
+                if (block?.type === 'code' && typeof block.content === 'string') {
+                    blockEl.nativeElement.innerText = block.content;
+                }
                 blockEl.nativeElement.focus();
                 // Move cursor to end
                 const range = document.createRange();
@@ -383,6 +407,26 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
 
         // Push history for undo/redo
         this.pushHistory();
+    }
+
+    onBlockBlur(event: Event, blockId: string) {
+        const block = this.blocks().find(b => b.id === blockId);
+        if (block?.type === 'code' && typeof block.content === 'string') {
+            const target = event.target as HTMLDivElement;
+            // Apply highlight when block loses focus
+            this.applyHighlight(blockId, block.content, target);
+        }
+    }
+
+    private applyHighlight(blockId: string, content: string, element: HTMLDivElement) {
+        if (!content.trim()) {
+            element.innerHTML = '';
+            return;
+        }
+
+        // Apply highlight using PrismJS
+        const highlighted = this.highlightPipe.transform(content);
+        element.innerHTML = highlighted as string;
     }
 
     onBlockKeydown(event: KeyboardEvent, blockId: string) {

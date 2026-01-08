@@ -119,7 +119,7 @@
                 [class.checked]="block.type === 'todo' && block.checked"
                 [attr.data-placeholder]="getBlockPlaceholder(block)" contenteditable="true"
                 (input)="onBlockInput($event, block.id)" (keydown)="onBlockKeydown($event, block.id)"
-                (focus)="focusedBlockId.set(block.id)"></div>
+                (focus)="focusedBlockId.set(block.id)" (blur)="onBlockBlur($event, block.id)"></div>
             }
         </div>
         }
