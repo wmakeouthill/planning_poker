@@ -5,6 +5,11 @@ import { BoardService } from '../../services/board.service';
 import { Board } from '../../models/board.model';
 import { SlashCommandMenuComponent, SlashCommand, ContentBlock, BlockType } from '../../components/slash-command-menu/slash-command-menu.component';
 
+interface HistoryState {
+    blocks: ContentBlock[];
+    focusedBlockId: string | null;
+}
+
 @Component({
     selector: 'app-board-editor',
     standalone: true,
@@ -34,6 +39,12 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
     // Track which blocks need content sync
     private needsContentSync = new Set<string>();
     private initialSyncDone = false;
+
+    // Undo/Redo history
+    private history: HistoryState[] = [];
+    private historyIndex = -1;
+    private isUndoingOrRedoing = false;
+    private lastHistoryPush = 0;
 
     // Slash command state
     readonly showSlashMenu = signal(false);
@@ -116,6 +127,79 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
                 this.router.navigate(['/boards']);
             }
         });
+    }
+
+    // ========== History Management (Undo/Redo) ==========
+
+    private pushHistory() {
+        // Debounce - don't push if less than 300ms since last push
+        const now = Date.now();
+        if (now - this.lastHistoryPush < 300) return;
+        this.lastHistoryPush = now;
+
+        // If we're not at the end of history, truncate
+        if (this.historyIndex < this.history.length - 1) {
+            this.history = this.history.slice(0, this.historyIndex + 1);
+        }
+
+        // Deep clone blocks
+        const snapshot: HistoryState = {
+            blocks: JSON.parse(JSON.stringify(this.blocks())),
+            focusedBlockId: this.focusedBlockId()
+        };
+
+        this.history.push(snapshot);
+        this.historyIndex = this.history.length - 1;
+
+        // Limit history size
+        if (this.history.length > 50) {
+            this.history.shift();
+            this.historyIndex--;
+        }
+    }
+
+    private undo() {
+        if (this.historyIndex <= 0) return;
+
+        this.isUndoingOrRedoing = true;
+        this.historyIndex--;
+        const state = this.history[this.historyIndex];
+
+        this.blocks.set(JSON.parse(JSON.stringify(state.blocks)));
+        this.focusedBlockId.set(state.focusedBlockId);
+
+        // Sync all blocks
+        state.blocks.forEach(b => this.needsContentSync.add(b.id));
+
+        setTimeout(() => {
+            this.syncAllBlockContents();
+            if (state.focusedBlockId) {
+                this.focusBlock(state.focusedBlockId);
+            }
+            this.isUndoingOrRedoing = false;
+        }, 0);
+    }
+
+    private redo() {
+        if (this.historyIndex >= this.history.length - 1) return;
+
+        this.isUndoingOrRedoing = true;
+        this.historyIndex++;
+        const state = this.history[this.historyIndex];
+
+        this.blocks.set(JSON.parse(JSON.stringify(state.blocks)));
+        this.focusedBlockId.set(state.focusedBlockId);
+
+        // Sync all blocks
+        state.blocks.forEach(b => this.needsContentSync.add(b.id));
+
+        setTimeout(() => {
+            this.syncAllBlockContents();
+            if (state.focusedBlockId) {
+                this.focusBlock(state.focusedBlockId);
+            }
+            this.isUndoingOrRedoing = false;
+        }, 0);
     }
 
     private parseContentToBlocks(content: string): ContentBlock[] {
@@ -275,18 +359,35 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
     }
 
     onBlockInput(event: Event, blockId: string) {
+        if (this.isUndoingOrRedoing) return;
+
         const target = event.target as HTMLDivElement;
         const content = target.innerText;
 
         this.blocks.update(blocks =>
             blocks.map(b => b.id === blockId ? { ...b, content } : b)
         );
+
+        // Push history for undo/redo
+        this.pushHistory();
     }
 
     onBlockKeydown(event: KeyboardEvent, blockId: string) {
         const target = event.target as HTMLDivElement;
         const block = this.blocks().find(b => b.id === blockId);
         if (!block) return;
+
+        // Custom undo/redo (Ctrl+Z / Ctrl+Y)
+        if (event.ctrlKey && event.key === 'z') {
+            event.preventDefault();
+            this.undo();
+            return;
+        }
+        if (event.ctrlKey && event.key === 'y') {
+            event.preventDefault();
+            this.redo();
+            return;
+        }
 
         // Handle slash command
         if (event.key === '/' && target.innerText === '') {
@@ -295,7 +396,35 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
             return;
         }
 
-        // Enter - create new block
+        // Code block: Enter creates new empty block, doesn't carry content
+        if (block.type === 'code' && event.key === 'Enter' && !event.shiftKey) {
+            // Update code block content first
+            this.blocks.update(blocks =>
+                blocks.map(b => b.id === blockId ? { ...b, content: target.innerText } : b)
+            );
+
+            event.preventDefault();
+            const newBlock: ContentBlock = {
+                id: this.generateId(),
+                type: 'paragraph',
+                content: ''
+            };
+
+            this.needsContentSync.add(newBlock.id);
+
+            this.blocks.update(blocks => {
+                const index = blocks.findIndex(b => b.id === blockId);
+                const newBlocks = [...blocks];
+                newBlocks.splice(index + 1, 0, newBlock);
+                return newBlocks;
+            });
+
+            this.pushHistory();
+            setTimeout(() => this.focusBlock(newBlock.id), 0);
+            return;
+        }
+
+        // Regular blocks: Enter creates new block (unless shift held)
         if (event.key === 'Enter' && !event.shiftKey && !this.showSlashMenu()) {
             event.preventDefault();
 
@@ -333,26 +462,47 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
                 return newBlocks;
             });
 
+            this.pushHistory();
+
             // Focus new block
             setTimeout(() => this.focusBlock(newBlock.id), 0);
             return;
         }
 
-        // Backspace at start - merge with previous block or change type
+        // Backspace at start - merge with previous block or change type, or delete empty block
         if (event.key === 'Backspace') {
             const selection = window.getSelection();
             const cursorAtStart = selection?.anchorOffset === 0;
+            const blocks = this.blocks();
+            const index = blocks.findIndex(b => b.id === blockId);
+            const isEmpty = target.innerText.trim() === '';
+
+            // Delete empty block (not the first one)
+            if (isEmpty && index > 0) {
+                event.preventDefault();
+                const prevBlock = blocks[index - 1];
+
+                this.blocks.update(bs => bs.filter(b => b.id !== blockId));
+                this.pushHistory();
+
+                setTimeout(() => {
+                    if (prevBlock.type !== 'divider') {
+                        this.focusBlockAtPosition(prevBlock.id, prevBlock.content.length);
+                    } else if (index > 1) {
+                        this.focusBlock(blocks[index - 2].id);
+                    }
+                }, 0);
+                return;
+            }
 
             if (cursorAtStart) {
-                const blocks = this.blocks();
-                const index = blocks.findIndex(b => b.id === blockId);
-
                 // If block is not paragraph, convert to paragraph first
                 if (block.type !== 'paragraph') {
                     event.preventDefault();
                     this.blocks.update(bs =>
                         bs.map(b => b.id === blockId ? { ...b, type: 'paragraph' as BlockType } : b)
                     );
+                    this.pushHistory();
                     return;
                 }
 
@@ -372,6 +522,8 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
                                     : b
                             );
                         });
+
+                        this.pushHistory();
 
                         // Focus previous block at merge point
                         setTimeout(() => {
