@@ -523,48 +523,10 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                 value
             }).subscribe({
                 next: () => {
-                    // Disparar animação de bola de papel
-                    this.triggerPaperBallAnimation();
                     this.pokerService.buscarSessao(session.id).subscribe();
                 }
             });
         }
-    }
-
-    /**
-     * Dispara animação de bola de papel quando alguém vota.
-     */
-    private triggerPaperBallAnimation(): void {
-        const session = this.session();
-        if (!session) return;
-
-        // Posição aleatória de origem (lados da tela)
-        const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
-        const startX = side === 3 ? 0 : side === 1 ? window.innerWidth : Math.random() * window.innerWidth;
-        const startY = side === 0 ? 0 : side === 2 ? window.innerHeight : Math.random() * window.innerHeight;
-
-        // Posição do card do participante (centro da tela como aproximação)
-        const endX = window.innerWidth / 2;
-        const endY = window.innerHeight / 2;
-
-        // Disparar animação localmente primeiro
-        const animationComponent = this.voteAnimation();
-        if (animationComponent) {
-            animationComponent.throwPaperBall(startX, startY, endX, endY);
-        }
-
-        // Enviar via HTTP (será propagado via WebSocket pelo backend para outros usuários)
-        this.wsService.sendAnimation({
-            sessionId: session.id,
-            type: 'paper-ball',
-            participantName: this.participantName()!,
-            startX,
-            startY,
-            endX,
-            endY
-        }).catch(error => {
-            console.error('Erro ao enviar animação:', error);
-        });
     }
 
     revealVotes() {
