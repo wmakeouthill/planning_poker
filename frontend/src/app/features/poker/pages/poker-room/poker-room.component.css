@@ -145,7 +145,7 @@
 .poker-table {
     position: relative;
     width: 100%;
-    max-width: 550px; /* Reduced from 700px */
+    max-width: 400px; /* Mesa menor */
     max-height: 100%;
     aspect-ratio: 16 / 9; /* Slightly more compact */
     background: radial-gradient(ellipse at center, #2d5a3d 0%, #1a472a 50%, #0f2818 100%);
@@ -393,7 +393,7 @@
 /* Responsividade - Tablet */
 @media (max-width: 1024px) {
     .poker-table {
-        max-width: 90%;
+        max-width: 350px; /* Mesa menor em tablets também */
     }
 }
 
@@ -437,7 +437,7 @@
     }
 
     .poker-table {
-        max-width: 100%;
+        max-width: 280px; /* Mesa menor em mobile */
         max-height: 100%;
         border-width: 8px;
     }
@@ -546,7 +546,7 @@
     }
 
     .poker-table {
-        max-width: 50%;
+        max-width: 240px; /* Mesa menor em landscape mobile */
         max-height: 100%;
     }
 

@@ -616,21 +616,58 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         });
     }
 
-    getCardPosition(index: number, total: number): { top: string; left: string; rotation: string } {
+    getCardPosition(index: number, total: number): { top: string; left: string; rotation: string; namePosition: 'top' | 'bottom' } {
         // Posicionar participantes em círculo AO REDOR da mesa (não dentro)
-        // Raio maior para ficar ao redor da mesa
-        const baseRadius = total <= 4 ? 48 : total <= 6 ? 52 : 55;
+        // Raio muito maior para ficar próximo da borda da tela
+        let baseRadius: number;
+
+        // Ajustar raio baseado no número de participantes - valores MUITO maiores para ficar bem próximo da borda
+        if (total <= 2) {
+            baseRadius = 72;
+        } else if (total <= 4) {
+            baseRadius = 74;
+        } else if (total <= 6) {
+            baseRadius = 76;
+        } else if (total <= 8) {
+            baseRadius = 78;
+        } else if (total <= 10) {
+            baseRadius = 80;
+        } else {
+            // Para muitos participantes, aumentar o raio gradualmente
+            baseRadius = 80 + Math.min((total - 10) * 0.2, 5);
+        }
+
+        // Ajuste responsivo baseado no tamanho da tela (menos redução para manter próximo da borda)
+        if (typeof window !== 'undefined') {
+            const screenWidth = window.innerWidth;
+            if (screenWidth < 768) {
+                baseRadius *= 0.93; // Reduzir menos em telas menores
+            } else if (screenWidth < 1024) {
+                baseRadius *= 0.97;
+            }
+        }
+
+        // Calcular ângulo uniformemente distribuído
+        // Começar do topo (-Math.PI/2) e distribuir uniformemente
         const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
+
+        // Usar formato elíptico para melhor visualização
         const radiusX = baseRadius; // % do container
         const radiusY = baseRadius * 0.85; // Ajuste para formato elíptico
 
         const x = 50 + radiusX * Math.cos(angle);
         const y = 50 + radiusY * Math.sin(angle);
 
+        // Determinar posição do nome:
+        // - Se a carta está na metade INFERIOR (y > 50%), nome aparece EM CIMA (top)
+        // - Se a carta está na metade SUPERIOR (y <= 50%), nome aparece EM BAIXO (bottom)
+        const namePosition: 'top' | 'bottom' = y > 50 ? 'top' : 'bottom';
+
         return {
             top: `${y}%`,
             left: `${x}%`,
-            rotation: `${(angle * 180 / Math.PI) + 90}deg`
+            rotation: `${(angle * 180 / Math.PI) + 90}deg`,
+            namePosition
         };
     }
 

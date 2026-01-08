@@ -78,7 +78,7 @@
                     @for (vote of session()!.votes; track vote.id; let i = $index) {
                     @let pos = getCardPosition(i, session()!.votes.length);
                     <app-participant-card [vote]="vote" [participantName]="participantName()!" [top]="pos.top"
-                        [left]="pos.left" (cardClicked)="onParticipantCardClick($event)" />
+                        [left]="pos.left" [namePosition]="pos.namePosition" (cardClicked)="onParticipantCardClick($event)" />
                     }
                     } @else {
                     <!-- Mensagem quando não há participantes ainda -->

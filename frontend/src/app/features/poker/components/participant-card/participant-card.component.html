@@ -1,5 +1,8 @@
 <div class="participant-card" [style.top]="top" [style.left]="left" [class.voted]="vote.hasVoted"
-    [class.revealed]="vote.revealed">
+    [class.revealed]="vote.revealed" [class.name-top]="namePosition === 'top'" [class.name-bottom]="namePosition === 'bottom'">
+    @if (namePosition === 'top') {
+    <span class="participant-name">{{ vote.participantName }}</span>
+    }
     <div class="card-flip-container" (click)="onCardClick($event)">
         <div class="card-flip-inner" [class.flipped]="vote.revealed">
             <!-- Card Back (Face Down) - Sempre visível durante votação -->
@@ -35,5 +38,7 @@
             </div>
         </div>
     </div>
+    @if (namePosition === 'bottom') {
     <span class="participant-name">{{ vote.participantName }}</span>
+    }
 </div>

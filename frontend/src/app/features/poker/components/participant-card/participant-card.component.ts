@@ -16,6 +16,7 @@ export class ParticipantCardComponent {
     @Input({ required: true }) participantName!: string;
     @Input() top = '50%';
     @Input() left = '50%';
+    @Input() namePosition: 'top' | 'bottom' = 'bottom';
 
     readonly cardClicked = output<{ vote: Vote; element: HTMLElement }>();
 
