@@ -76,7 +76,8 @@
             </div>
             }
             @case ('code') {
-            <pre><code>{{ block.content }}</code></pre> }
+            <pre class="language-auto"><code [innerHTML]="block.content | highlight"></code></pre>
+            }
             @case ('divider') {
             <hr /> }
             @default { <p>{{ block.content }}</p> }

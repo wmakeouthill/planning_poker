@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { BoardService } from '../../services/board.service';
 import { Board } from '../../models/board.model';
 import { SlashCommandMenuComponent, SlashCommand, ContentBlock, BlockType } from '../../components/slash-command-menu/slash-command-menu.component';
+import { HighlightPipe } from '../../pipes/highlight.pipe';
 
 interface HistoryState {
     blocks: ContentBlock[];
@@ -13,7 +14,7 @@ interface HistoryState {
 @Component({
     selector: 'app-board-editor',
     standalone: true,
-    imports: [FormsModule, SlashCommandMenuComponent],
+    imports: [FormsModule, SlashCommandMenuComponent, HighlightPipe],
     templateUrl: './board-editor.component.html',
     styleUrl: './board-editor.component.css'
 })
