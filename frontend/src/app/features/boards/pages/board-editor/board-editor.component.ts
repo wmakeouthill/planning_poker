@@ -339,8 +339,12 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
 
     enterEditMode() {
         this.viewMode.set('edit');
-        // Push initial history state when entering edit mode
-        setTimeout(() => this.pushHistory(), 100);
+        // Sync all block contents after view renders
+        setTimeout(() => {
+            this.blocks().forEach(b => this.needsContentSync.add(b.id));
+            this.syncAllBlockContents();
+            this.pushHistory();
+        }, 50);
     }
 
     goBack() {
