@@ -79,4 +79,10 @@ public class PokerSessionController implements PokerSessionAPI {
     public ResponseEntity<JoinSessionResponseDTO> entrarPorInviteCode(String inviteCode) {
         return ResponseEntity.ok(servicoPokerSession.entrarPorInviteCode(inviteCode));
     }
+
+    @Override
+    public ResponseEntity<Void> enviarAnimacao(Long id, AnimationEventDTO dto) {
+        servicoPokerSession.enviarAnimacao(id, dto);
+        return ResponseEntity.ok().build();
+    }
 }

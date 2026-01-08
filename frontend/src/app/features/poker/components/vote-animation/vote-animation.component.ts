@@ -34,5 +34,13 @@ export class VoteAnimationComponent {
             this.activeAnimations.update(arr => arr.filter(a => a.id !== id));
         }, 2500);
     }
+
+    /**
+     * Adiciona uma animação de bola de papel.
+     */
+    throwPaperBall(startX: number, startY: number, endX: number, endY: number): void {
+        // Usar emoji de papel para representar bola de papel
+        this.throwEmoji('🗞️', startX, startY, endX, endY);
+    }
 }
 

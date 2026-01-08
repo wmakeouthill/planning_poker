@@ -35,9 +35,8 @@ public class PokerWebSocketController {
                     dto.votes(),
                     dto.averageVote(),
                     dto.revealedAt(),
-                    event.getEventType()
-            );
-            
+                    event.getEventType());
+
             messagingTemplate.convertAndSend("/topic/poker/session/" + event.getSessionId(), update);
             log.debug("Notificação enviada para sessão {}: {}", event.getSessionId(), event.getEventType());
         } catch (Exception e) {
@@ -45,4 +44,3 @@ public class PokerWebSocketController {
         }
     }
 }
-

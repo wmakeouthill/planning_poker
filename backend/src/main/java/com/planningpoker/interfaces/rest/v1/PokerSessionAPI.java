@@ -85,4 +85,11 @@ public interface PokerSessionAPI {
     @PostMapping("/sessions/join/{inviteCode}")
     ResponseEntity<JoinSessionResponseDTO> entrarPorInviteCode(
             @Parameter(description = "Código de convite da sessão") @PathVariable String inviteCode);
+
+    @Operation(summary = "Envia evento de animação (emoji ou bola de papel)")
+    @ApiResponse(responseCode = "200", description = "Evento enviado com sucesso")
+    @PostMapping("/sessions/{id}/animation")
+    ResponseEntity<Void> enviarAnimacao(
+            @Parameter(description = "ID da sessão") @PathVariable Long id,
+            @Valid @RequestBody AnimationEventDTO dto);
 }

@@ -27,7 +27,7 @@
 
     <!-- Todos os emojis roláveis -->
     <div class="emoji-list" #emojiList>
-        @for (emoji of allEmojis; track emoji) {
+        @for (emoji of allEmojis; track $index) {
         <button class="emoji-btn" [class.selected]="emoji === selectedEmoji" (click)="selectEmoji(emoji)">
             {{ emoji }}
         </button>

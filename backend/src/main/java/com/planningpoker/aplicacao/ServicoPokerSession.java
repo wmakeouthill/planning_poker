@@ -20,6 +20,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,7 @@ public class ServicoPokerSession {
     private final PokerSessionParticipantRepository participantRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final UsuarioAutenticadoProvider usuarioAutenticadoProvider;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional(readOnly = true)
     public List<PokerSession> listarAtivas() {
@@ -84,7 +86,8 @@ public class ServicoPokerSession {
 
         var savedSession = sessionRepository.save(session);
 
-        // Criador entra automaticamente como participante (controle de acesso/histórico)
+        // Criador entra automaticamente como participante (controle de
+        // acesso/histórico)
         if (!participantRepository.existsBySessionIdAndUsuarioId(savedSession.getId(), usuario.getId())) {
             participantRepository.save(new PokerSessionParticipant(savedSession, usuario));
         }
@@ -104,7 +107,8 @@ public class ServicoPokerSession {
         if (!participantRepository.existsBySessionIdAndUsuarioId(dto.sessionId(), usuario.getId())) {
             // Criar participante automaticamente quando alguém vota pela primeira vez
             participantRepository.save(new PokerSessionParticipant(session, usuario));
-            log.info("Participante criado automaticamente para sessão {} e usuário {} ao votar", dto.sessionId(), usuario.getId());
+            log.info("Participante criado automaticamente para sessão {} e usuário {} ao votar", dto.sessionId(),
+                    usuario.getId());
         }
 
         if (!session.isVotingOpen()) {
@@ -127,17 +131,19 @@ public class ServicoPokerSession {
                 log.info("Atualizando voto existente para: {}", dto.participantName());
             }
         } else {
-            // Se o valor for vazio na primeira vez, cria voto vazio (participante entra na mesa)
-            vote = new Vote(dto.participantName(), dto.value() != null && !dto.value().trim().isEmpty() ? dto.value() : null);
+            // Se o valor for vazio na primeira vez, cria voto vazio (participante entra na
+            // mesa)
+            vote = new Vote(dto.participantName(),
+                    dto.value() != null && !dto.value().trim().isEmpty() ? dto.value() : null);
             session.addVote(vote);
             log.info("Criando voto para: {}", dto.participantName());
         }
 
         var savedVote = voteRepository.save(vote);
-        
+
         // Publicar evento para notificação via WebSocket
         eventPublisher.publishEvent(new PokerSessionEvent(this, dto.sessionId(), "VOTE"));
-        
+
         return savedVote;
     }
 
@@ -154,10 +160,10 @@ public class ServicoPokerSession {
 
         session.revealVotes();
         var savedSession = sessionRepository.save(session);
-        
+
         // Publicar evento para notificação via WebSocket
         eventPublisher.publishEvent(new PokerSessionEvent(this, sessionId, "REVEAL"));
-        
+
         return savedSession;
     }
 
@@ -170,12 +176,12 @@ public class ServicoPokerSession {
 
         session.resetVotes();
         voteRepository.deleteBySessionId(sessionId);
-        
+
         var savedSession = sessionRepository.save(session);
-        
+
         // Publicar evento para notificação via WebSocket
         eventPublisher.publishEvent(new PokerSessionEvent(this, sessionId, "RESET"));
-        
+
         return savedSession;
     }
 
@@ -203,10 +209,10 @@ public class ServicoPokerSession {
     public PageResponseDTO<PokerSessionDTO> listarHistorico(int page, int size, SessionStatus status) {
         var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
         log.debug("Listando histórico de sessões - página: {}, tamanho: {}, status: {}", page, size, status);
-        
+
         Pageable pageable = PageRequest.of(page, size);
         Page<PokerSession> sessionsPage;
-        
+
         if (status != null) {
             sessionsPage = sessionRepository.findHistoricoPorUsuarioEStatus(usuario.getId(), status, pageable);
         } else {
@@ -223,7 +229,7 @@ public class ServicoPokerSession {
         List<PokerSessionDTO> dtos = sessionsPage.getContent().stream()
                 .map(session -> toDTO(session, null, votesBySessionId.getOrDefault(session.getId(), List.of())))
                 .toList();
-        
+
         return PageResponseDTO.of(dtos, page, size, sessionsPage.getTotalElements());
     }
 
@@ -260,12 +266,26 @@ public class ServicoPokerSession {
         log.info("Entrando em sessão por inviteCode={} (userId={})", inviteCode, usuario.getId());
 
         var session = sessionRepository.findByInviteCode(inviteCode)
-                .orElseThrow(() -> new ResourceNotFoundException("PokerSession com inviteCode " + inviteCode + " não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "PokerSession com inviteCode " + inviteCode + " não encontrado"));
 
         if (!participantRepository.existsBySessionIdAndUsuarioId(session.getId(), usuario.getId())) {
             participantRepository.save(new PokerSessionParticipant(session, usuario));
         }
 
         return new JoinSessionResponseDTO(session.getId());
+    }
+
+    /**
+     * Envia evento de animação (emoji ou bola de papel) via WebSocket.
+     */
+    public void enviarAnimacao(Long sessionId, AnimationEventDTO dto) {
+        // Verificar se a sessão existe
+        sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("PokerSession", sessionId));
+
+        // Propagar evento via WebSocket diretamente
+        messagingTemplate.convertAndSend("/topic/poker/session/" + sessionId + "/animation", dto);
+        log.debug("Evento de animação enviado para sessão {}: {} de {}", sessionId, dto.type(), dto.participantName());
     }
 }

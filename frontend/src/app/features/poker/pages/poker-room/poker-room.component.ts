@@ -117,6 +117,12 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
     });
 
     constructor() {
+        // Nada aqui - effects serão configurados em ngOnInit
+    }
+
+    ngOnInit() {
+        this.pokerService.loadParticipantName();
+
         // Effect para sincronizar selectedCard com myVote
         effect(() => {
             const myVote = this.myVote();
@@ -132,10 +138,42 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                 this.selectedCard.set(null);
             }
         });
-    }
 
-    ngOnInit() {
-        this.pokerService.loadParticipantName();
+        // Effect para sincronizar atualizações do WebSocket com a sessão
+        effect(() => {
+            const wsUpdate = this.wsService.sessionUpdate();
+            if (wsUpdate) {
+                // Atualizar sessão quando receber atualização via WebSocket
+                this.pokerService.currentSession.set(wsUpdate);
+            }
+        });
+
+        // Effect para disparar animações quando receber evento via WebSocket
+        effect(() => {
+            const animationEvent = this.wsService.animationEvent();
+            if (animationEvent && animationEvent.participantName !== this.participantName()) {
+                // Não disparar animação do próprio usuário (já foi disparada localmente)
+                const animationComponent = this.voteAnimation();
+                if (animationComponent) {
+                    if (animationEvent.type === 'emoji' && animationEvent.emoji) {
+                        animationComponent.throwEmoji(
+                            animationEvent.emoji,
+                            animationEvent.startX,
+                            animationEvent.startY,
+                            animationEvent.endX,
+                            animationEvent.endY
+                        );
+                    } else if (animationEvent.type === 'paper-ball') {
+                        animationComponent.throwPaperBall(
+                            animationEvent.startX,
+                            animationEvent.startY,
+                            animationEvent.endX,
+                            animationEvent.endY
+                        );
+                    }
+                }
+            }
+        });
 
         // Verificar se há um ID na rota
         const sessionId = this.route.snapshot.paramMap.get('id');
@@ -269,6 +307,7 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
 
     ngOnDestroy() {
         this.pollingSubscription?.unsubscribe();
+        this.wsService.disconnect();
     }
 
     joinSession() {
@@ -421,6 +460,9 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
      * Dispara animação de bola de papel quando alguém vota.
      */
     private triggerPaperBallAnimation(): void {
+        const session = this.session();
+        if (!session) return;
+
         // Posição aleatória de origem (lados da tela)
         const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
         const startX = side === 3 ? 0 : side === 1 ? window.innerWidth : Math.random() * window.innerWidth;
@@ -430,14 +472,18 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         const endX = window.innerWidth / 2;
         const endY = window.innerHeight / 2;
 
-        this.wsService.sendAnimation(
-            'paper-ball',
-            this.participantName()!,
+        // Enviar via HTTP (será propagado via WebSocket pelo backend)
+        this.wsService.sendAnimation({
+            sessionId: session.id,
+            type: 'paper-ball',
+            participantName: this.participantName()!,
             startX,
             startY,
             endX,
             endY
-        );
+        }).catch(error => {
+            console.error('Erro ao enviar animação:', error);
+        });
     }
 
     revealVotes() {
@@ -462,37 +508,49 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
     }
 
     private startPolling(sessionId: number) {
-        this.pollingSubscription?.unsubscribe();
-
-        // Buscar sessão imediatamente antes de iniciar polling
+        // Buscar sessão imediatamente antes de conectar WebSocket
         this.pokerService.buscarSessao(sessionId).subscribe({
             next: (session) => {
-                // Garantir que a sessão tem votos antes de iniciar polling
+                // Garantir que a sessão tem votos
                 if (!session.votes) {
                     session.votes = [];
                 }
                 // Atualizar sessão imediatamente para mostrar dados atuais
                 this.pokerService.currentSession.set(session);
 
-                // Iniciar polling após carregar sessão inicial
+                // Conectar ao WebSocket para receber atualizações em tempo real
+                this.wsService.connect(sessionId);
+
+                // Fallback: Iniciar polling apenas se WebSocket não estiver disponível
+                // (será usado como fallback se WebSocket falhar)
+                this.pollingSubscription?.unsubscribe();
                 this.pollingSubscription = this.pokerService.startPolling(sessionId).subscribe({
                     next: (updatedSession) => {
-                        // Atualizar sessão com dados mais recentes
-                        // Garantir que todos os votos sejam preservados
-                        if (!updatedSession.votes) {
-                            updatedSession.votes = [];
+                        // Só atualizar via polling se não recebeu atualização via WebSocket recentemente
+                        // Isso evita conflitos entre polling e WebSocket
+                        const wsUpdate = this.wsService.sessionUpdate();
+                        if (!wsUpdate || wsUpdate.id !== updatedSession.id) {
+                            if (!updatedSession.votes) {
+                                updatedSession.votes = [];
+                            }
+                            // Verificar se houve mudança antes de atualizar
+                            const currentSession = this.session();
+                            if (!currentSession ||
+                                currentSession.votes.length !== updatedSession.votes.length ||
+                                currentSession.status !== updatedSession.status) {
+                                this.pokerService.currentSession.set(updatedSession);
+                            }
                         }
-                        this.pokerService.currentSession.set(updatedSession);
 
-                        // Se a sessão foi fechada, parar polling
+                        // Se a sessão foi fechada, parar polling e desconectar WebSocket
                         if (updatedSession.status === 'CLOSED') {
                             this.pollingSubscription?.unsubscribe();
+                            this.wsService.disconnect();
                         }
                     },
                     error: (error) => {
-                        console.error('Erro no polling:', error);
-                        // Parar polling em caso de erro
-                        this.pollingSubscription?.unsubscribe();
+                        console.error('Erro no polling (fallback):', error);
+                        // Não parar polling em caso de erro - continuar tentando como fallback
                     }
                 });
             },
@@ -536,6 +594,9 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
             return;
         }
 
+        const session = this.session();
+        if (!session) return;
+
         // Obter posição do card clicado
         const rect = event.element.getBoundingClientRect();
         const endX = rect.left + rect.width / 2;
@@ -564,16 +625,19 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                 startY = Math.random() * window.innerHeight;
         }
 
-        // Chamar throwEmoji diretamente no componente de animação
-        const animationComponent = this.voteAnimation();
-        if (animationComponent) {
-            animationComponent.throwEmoji(
-                this.selectedEmoji(),
-                startX,
-                startY,
-                endX,
-                endY
-            );
-        }
+        // Enviar via HTTP (será propagado via WebSocket pelo backend)
+        this.wsService.sendAnimation({
+            sessionId: session.id,
+            type: 'emoji',
+            participantName: this.participantName()!,
+            startX,
+            startY,
+            endX,
+            endY,
+            targetCard: event.vote.value,
+            emoji: this.selectedEmoji()
+        }).catch(error => {
+            console.error('Erro ao enviar animação:', error);
+        });
     }
 }
