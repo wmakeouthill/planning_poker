@@ -2,13 +2,13 @@
 # Uso: .\deploy-github-pages.ps1 -BackendUrl "https://seu-backend.run.app"
 
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string]$BackendUrl,
     
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [string]$RepoName = "planning_poker",
     
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [string]$Branch = "main"
 )
 
@@ -25,11 +25,11 @@ if (-not (Test-Path "frontend")) {
 Push-Location frontend
 
 try {
-    Write-Host "📦 Instalando dependências..." -ForegroundColor Yellow
+    Write-Host "[*] Instalando dependencias..." -ForegroundColor Yellow
     npm install
     
     Write-Host ""
-    Write-Host "🔨 Fazendo build para GitHub Pages..." -ForegroundColor Yellow
+    Write-Host "[*] Fazendo build para GitHub Pages..." -ForegroundColor Yellow
     
     # Substituir URL do backend no env.js antes do build
     $envJsPath = "public\assets\env.js"
@@ -49,7 +49,7 @@ try {
     npm run build -- --configuration=github-pages
     
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "❌ Erro ao fazer build!" -ForegroundColor Red
+        Write-Host "[ERRO] Erro ao fazer build!" -ForegroundColor Red
         exit 1
     }
     
@@ -57,19 +57,20 @@ try {
     $distPath = "dist\frontend\browser"
     if (Test-Path $distPath) {
         Copy-Item "public\404.html" "$distPath\404.html" -Force
-        Write-Host "✅ 404.html copiado para dist" -ForegroundColor Green
+        Write-Host "[OK] 404.html copiado para dist" -ForegroundColor Green
     }
     
     Write-Host ""
-    Write-Host "✅ Build concluído!" -ForegroundColor Green
+    Write-Host "[OK] Build concluido!" -ForegroundColor Green
     Write-Host ""
-    Write-Host "📋 Próximos passos:" -ForegroundColor Yellow
-    Write-Host "1. Navegue até a pasta: frontend\dist\frontend\browser" -ForegroundColor White
-    Write-Host "2. Verifique se o arquivo env.js contém a URL correta do backend: $BackendUrl" -ForegroundColor White
-    Write-Host "3. Faça commit e push da pasta dist/frontend/browser para a branch gh-pages" -ForegroundColor White
+    Write-Host "[*] Proximos passos:" -ForegroundColor Yellow
+    Write-Host "1. Navegue ate a pasta: frontend\dist\frontend\browser" -ForegroundColor White
+    Write-Host "2. Verifique se o arquivo env.js contem a URL correta do backend: $BackendUrl" -ForegroundColor White
+    Write-Host "3. Faca commit e push da pasta dist/frontend/browser para a branch gh-pages" -ForegroundColor White
     Write-Host ""
-    Write-Host "💡 Dica: Use o GitHub Actions para automatizar o deploy!" -ForegroundColor Cyan
+    Write-Host "[DICA] Use o GitHub Actions para automatizar o deploy!" -ForegroundColor Cyan
     
-} finally {
+}
+finally {
     Pop-Location
 }
