@@ -720,86 +720,87 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
             return this.getVotingCardPosition(index, total);
         }
 
-        // Calcular posição em fileira horizontal embaixo da mesa
-        // Centralizar a fileira: começar em 20% e terminar em 80% (60% de espaço útil)
-        // Distribuir uniformemente nesse espaço
-        const startPercent = 20;
-        const endPercent = 80;
-        const availableSpace = endPercent - startPercent;
-        
-        // Se houver apenas 1 carta, centralizar
-        if (total === 1) {
-            const leftPercent = 50;
-            let topPercent = 70;
-            
-            if (typeof window !== 'undefined') {
-                const screenHeight = window.innerHeight;
-                if (screenHeight < 600) {
-                    topPercent = 65;
-                } else if (screenHeight < 800) {
-                    topPercent = 68;
-                } else if (screenHeight > 1200) {
-                    topPercent = 72;
-                }
-            }
-            
+        if (typeof window === 'undefined') {
+            // Fallback se window não estiver disponível
             return {
-                top: `${topPercent}%`,
-                left: `${leftPercent}%`,
+                top: '78%',
+                left: `${10 + (index * 12)}%`,
                 rotation: '0deg',
                 namePosition: 'top'
             };
         }
-        
-        // Para múltiplas cartas, distribuir uniformemente
-        const spacing = availableSpace / (total - 1);
-        const leftPercent = startPercent + (spacing * index);
-        
-        // Posicionar embaixo da mesa (aproximadamente 70-75% da altura)
-        let topPercent = 70;
-        
-        if (typeof window !== 'undefined') {
-            const screenHeight = window.innerHeight;
-            if (screenHeight < 600) {
-                topPercent = 65; // Mais alto em telas baixas
-            } else if (screenHeight < 800) {
-                topPercent = 68;
-            } else if (screenHeight > 1200) {
-                topPercent = 72; // Mais baixo em telas altas
-            }
-            
-            // Ajuste adicional para mobile: reduzir espaçamento horizontal se necessário
-            const screenWidth = window.innerWidth;
-            if (screenWidth < 480) {
-                // Em telas muito pequenas, usar mais espaço horizontal
-                const mobileStart = total > 4 ? 5 : 15;
-                const mobileEnd = total > 4 ? 95 : 85;
-                const mobileSpace = mobileEnd - mobileStart;
-                const mobileSpacing = total > 1 ? mobileSpace / (total - 1) : 0;
-                const mobileLeft = total === 1 ? 50 : mobileStart + (mobileSpacing * index);
-                
-                return {
-                    top: `${topPercent}%`,
-                    left: `${mobileLeft}%`,
-                    rotation: '0deg',
-                    namePosition: 'top'
-                };
-            } else if (screenWidth < 768 && total > 5) {
-                // Em tablets com muitas cartas, usar um pouco mais de espaço
-                const tabletStart = 15;
-                const tabletEnd = 85;
-                const tabletSpace = tabletEnd - tabletStart;
-                const tabletSpacing = tabletSpace / (total - 1);
-                const tabletLeft = tabletStart + (tabletSpacing * index);
-                
-                return {
-                    top: `${topPercent}%`,
-                    left: `${tabletLeft}%`,
-                    rotation: '0deg',
-                    namePosition: 'top'
-                };
-            }
+
+        // Tamanho real da carta em pixels (baseado no CSS do participant-card)
+        // CSS define: width: 70px (desktop), 50px (mobile < 768px), 42px (mobile < 480px)
+        let cardWidth = 70; // Desktop padrão
+        if (window.innerWidth < 480) {
+            cardWidth = 42;
+        } else if (window.innerWidth < 768) {
+            cardWidth = 50;
         }
+
+        // Gap maior e mais visível entre cartas - AUMENTADO para garantir espaço
+        const gap = window.innerWidth < 768 ? 20 : 25; // Gap maior: 20px mobile, 25px desktop
+
+        // Calcular espaço disponível considerando o container .poker-table-container
+        // O container tem padding de 2rem (32px) de cada lado no desktop, 1rem (16px) no mobile
+        const containerPadding = window.innerWidth < 768 ? 16 : 32;
+        const containerPaddingTotal = containerPadding * 2; // padding left + right
+        const containerPaddingLeft = containerPadding; // padding de um lado apenas
+        const availableWidth = window.innerWidth - containerPaddingTotal;
+
+        // Calcular quantas cartas cabem por fileira
+        // Espaço necessário por carta = largura da carta + gap
+        const spacePerCard = cardWidth + gap;
+        const cardsPerRow = Math.floor(availableWidth / spacePerCard);
+
+        // Garantir pelo menos 1 carta por fileira e no máximo 10 por fileira
+        const actualCardsPerRow = Math.max(1, Math.min(cardsPerRow, 10));
+
+        // Calcular em qual fileira está esta carta
+        const row = Math.floor(index / actualCardsPerRow);
+        const positionInRow = index % actualCardsPerRow;
+        const cardsInThisRow = Math.min(actualCardsPerRow, total - (row * actualCardsPerRow));
+
+        // Calcular posição horizontal
+        // Centralizar o grupo de cartas na tela (considerando o container)
+        const totalCardsWidth = (cardsInThisRow * cardWidth) + (gap * (cardsInThisRow - 1));
+        const startLeftPx = containerPaddingLeft + ((availableWidth - totalCardsWidth) / 2);
+
+        // Posição left desta carta em pixels
+        // IMPORTANTE: A carta está centralizada com transform: translate(-50%, -50%)
+        // Então o left deve ser o centro da carta
+        // startLeftPx é a posição da borda esquerda da primeira carta
+        // Para cada carta, adicionamos: (cardWidth + gap) * positionInRow para chegar na borda esquerda
+        // Depois adicionamos cardWidth/2 para chegar no centro
+        const cardLeftPx = startLeftPx + (positionInRow * (cardWidth + gap)) + (cardWidth / 2);
+        const leftPercent = (cardLeftPx / window.innerWidth) * 100;
+
+        // Debug temporário - remover depois
+        // console.log(`Card ${index}: left=${leftPercent.toFixed(2)}%, gap=${gap}px, cardWidth=${cardWidth}px, posInRow=${positionInRow}, cardsInRow=${cardsInThisRow}`);
+
+        // Posicionar mais abaixo da mesa
+        let topPercent = 78;
+        const screenHeight = window.innerHeight;
+
+        if (screenHeight < 600) {
+            topPercent = 72;
+        } else if (screenHeight < 800) {
+            topPercent = 75;
+        } else if (screenHeight > 1200) {
+            topPercent = 82;
+        }
+
+        // Adicionar offset para fileiras adicionais
+        let rowSpacing = 14; // Espaçamento padrão entre fileiras (em %)
+        if (screenHeight < 600) {
+            rowSpacing = 12;
+        } else if (screenHeight < 800) {
+            rowSpacing = 13;
+        } else if (screenHeight > 1200) {
+            rowSpacing = 16;
+        }
+        topPercent += row * rowSpacing;
 
         return {
             top: `${topPercent}%`,
@@ -829,7 +830,12 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
         if (!session) return;
 
         // Obter posição do card clicado
-        const rect = event.element.getBoundingClientRect();
+        // O event.element é o card-flip-container, mas precisamos do participant-card (pai)
+        // que tem o posicionamento absoluto correto com transform: translate(-50%, -50%)
+        const cardContainer = event.element.closest('.participant-card') as HTMLElement;
+        const targetElement = cardContainer || event.element;
+        const rect = targetElement.getBoundingClientRect();
+        // O centro do elemento (considerando que participant-card usa translate(-50%, -50%))
         const endX = rect.left + rect.width / 2;
         const endY = rect.top + rect.height / 2;
 
@@ -872,6 +878,69 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
             endX,
             endY,
             targetCard: event.vote.value,
+            emoji: this.selectedEmoji()
+        }).catch(error => {
+            console.error('Erro ao enviar animação:', error);
+        });
+    }
+
+    /**
+     * Dispara animação de emoji ao clicar em uma carta revelada (nova fileira).
+     */
+    onRevealedCardClick(event: MouseEvent, vote: Vote): void {
+        // Não arremessar emoji em si mesmo
+        if (vote.participantName === this.participantName()) {
+            return;
+        }
+
+        const session = this.session();
+        if (!session) return;
+
+        // Obter posição do card clicado
+        const target = event.currentTarget as HTMLElement;
+        const rect = target.getBoundingClientRect();
+        const endX = rect.left + rect.width / 2;
+        const endY = rect.top + rect.height / 2;
+
+        // Posição aleatória de origem (lados da tela)
+        const side = Math.floor(Math.random() * 4);
+        let startX: number;
+        let startY: number;
+
+        switch (side) {
+            case 0: // top
+                startX = Math.random() * window.innerWidth;
+                startY = -50;
+                break;
+            case 1: // right
+                startX = window.innerWidth + 50;
+                startY = Math.random() * window.innerHeight;
+                break;
+            case 2: // bottom
+                startX = Math.random() * window.innerWidth;
+                startY = window.innerHeight + 50;
+                break;
+            default: // left
+                startX = -50;
+                startY = Math.random() * window.innerHeight;
+        }
+
+        // Disparar animação localmente primeiro
+        const animationComponent = this.voteAnimation();
+        if (animationComponent) {
+            animationComponent.throwEmoji(this.selectedEmoji(), startX, startY, endX, endY);
+        }
+
+        // Enviar via HTTP
+        this.wsService.sendAnimation({
+            sessionId: session.id,
+            type: 'emoji',
+            participantName: this.participantName()!,
+            startX,
+            startY,
+            endX,
+            endY,
+            targetCard: vote.value,
             emoji: this.selectedEmoji()
         }).catch(error => {
             console.error('Erro ao enviar animação:', error);

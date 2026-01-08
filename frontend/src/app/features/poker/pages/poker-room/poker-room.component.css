@@ -132,12 +132,14 @@
 .poker-table-container {
     flex: 1 1 auto;
     display: flex;
+    flex-direction: column; /* Coluna: mesa em cima, cartas reveladas embaixo */
     align-items: center;
-    justify-content: center;
-    /* Padding maior no topo e embaixo para acomodar cartas com raio grande (até 85% * 0.85 = ~72%) */
-    padding: 6rem 2rem 6rem 2rem; /* Mais espaço vertical, menos horizontal */
+    justify-content: flex-start;
+    /* Padding maior no topo para acomodar cartas ao redor da mesa */
+    padding: 6rem 2rem 2rem 2rem;
     min-height: 0;
-    overflow: visible;
+    overflow-y: auto; /* Permitir scroll vertical se necessário */
+    overflow-x: hidden;
     position: relative;
 }
 
@@ -178,7 +180,151 @@
 
 /* Estilos movidos para componentes específicos */
 
-/* Estilos movidos para componentes específicos */
+/* Cartas reveladas em fileira */
+.revealed-cards-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding: 1rem;
+    width: 100%;
+}
+
+.revealed-card-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.revealed-card-name {
+    font-size: 0.7rem;
+    color: white;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 0.15rem 0.5rem;
+    border-radius: 8px;
+    white-space: nowrap;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+}
+
+.revealed-card {
+    width: 70px;
+    height: 98px;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #fbbf24;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    box-shadow:
+        0 6px 16px rgba(251, 191, 36, 0.5),
+        0 3px 8px rgba(0, 0, 0, 0.3),
+        0 0 15px rgba(251, 191, 36, 0.3);
+}
+
+.revealed-card:hover {
+    transform: translateY(-4px) scale(1.05);
+    box-shadow:
+        0 10px 24px rgba(251, 191, 36, 0.6),
+        0 6px 12px rgba(0, 0, 0, 0.4),
+        0 0 25px rgba(251, 191, 36, 0.4);
+}
+
+.revealed-card .card-corner {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #78350f;
+    line-height: 1;
+}
+
+.revealed-card .card-corner.top-left {
+    align-self: flex-start;
+}
+
+.revealed-card .card-corner.bottom-right {
+    align-self: flex-end;
+    transform: rotate(180deg);
+}
+
+.revealed-card .card-value-center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #78350f;
+}
+
+/* Responsividade das cartas reveladas */
+@media (max-width: 768px) {
+    .revealed-cards-row {
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        padding: 0.75rem;
+    }
+
+    .revealed-card {
+        width: 55px;
+        height: 77px;
+        padding: 4px;
+    }
+
+    .revealed-card .card-corner {
+        font-size: 0.6rem;
+    }
+
+    .revealed-card .card-value-center {
+        font-size: 1.5rem;
+    }
+
+    .revealed-card-name {
+        font-size: 0.6rem;
+        max-width: 60px;
+        padding: 0.1rem 0.4rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .revealed-cards-row {
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding: 0.5rem;
+    }
+
+    .revealed-card {
+        width: 45px;
+        height: 63px;
+        padding: 3px;
+        border-radius: 6px;
+    }
+
+    .revealed-card .card-corner {
+        font-size: 0.5rem;
+    }
+
+    .revealed-card .card-value-center {
+        font-size: 1.25rem;
+    }
+
+    .revealed-card-name {
+        font-size: 0.5rem;
+        max-width: 50px;
+        padding: 0.1rem 0.3rem;
+    }
+}
 
 /* Controls */
 .controls {
@@ -399,8 +545,8 @@
 
     .poker-table-container {
         /* Padding ajustado para tablets */
-        padding: 5.5rem 1.5rem 5.5rem 1.5rem;
-        overflow: visible;
+        padding: 5.5rem 1.5rem 2rem 1.5rem;
+        overflow-y: auto;
     }
 }
 
@@ -438,11 +584,12 @@
     }
 
     .poker-table-container {
-        /* Padding maior no mobile também para acomodar cartas - ajustado para evitar cortes */
-        padding: 5rem 1rem 5rem 1rem;
+        /* Padding ajustado para mobile */
+        padding: 5rem 1rem 1.5rem 1rem;
         flex: 1 1 auto;
         min-height: 0;
-        overflow: visible; /* Garantir que cartas não sejam cortadas */
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 
     .poker-table {
@@ -502,9 +649,10 @@
     }
 
     .poker-table-container {
-        /* Padding ainda maior em telas muito pequenas para evitar cortes */
-        padding: 4rem 0.75rem 4rem 0.75rem;
-        overflow: visible;
+        /* Padding ajustado para mobile pequeno */
+        padding: 4rem 0.75rem 1rem 0.75rem;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 
     .poker-table {
@@ -556,10 +704,11 @@
     }
 
     .poker-table-container {
-        /* Padding adequado para landscape mobile - mais espaço vertical */
-        padding: 3.5rem 0.5rem 3.5rem 0.5rem;
+        /* Padding ajustado para landscape mobile */
+        padding: 3.5rem 0.5rem 1rem 0.5rem;
         flex: 1 1 auto;
-        overflow: visible; /* Garantir que cartas não sejam cortadas */
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 
     .poker-table {

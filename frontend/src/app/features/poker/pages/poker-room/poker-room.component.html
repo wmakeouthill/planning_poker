@@ -73,24 +73,16 @@
                     <app-table-center [status]="session()!.status" [votedCount]="votedCount()"
                         [totalParticipants]="totalParticipants()" [averageVote]="session()!.averageVote" />
 
-                    <!-- Participants around the table with flip cards -->
-                    @if (hasParticipants()) {
-                    @if (session()!.status === 'REVEALED' || session()!.status === 'CLOSED') {
-                    <!-- Quando revelado, mostrar apenas votos revelados em fileira -->
-                    @for (vote of revealedVotes(); track vote.id; let i = $index) {
-                    @let pos = getCardPosition(i, revealedVotes().length);
-                    <app-participant-card [vote]="vote" [participantName]="participantName()!" [top]="pos.top"
-                        [left]="pos.left" [namePosition]="pos.namePosition" (cardClicked)="onParticipantCardClick($event)" />
-                    }
-                    } @else {
-                    <!-- Durante votação, mostrar todos os participantes em círculo -->
+                    <!-- Durante votação, mostrar participantes em círculo ao redor da mesa -->
+                    @if (hasParticipants() && session()!.status === 'VOTING') {
                     @for (vote of session()!.votes; track vote.id; let i = $index) {
                     @let pos = getCardPosition(i, session()!.votes.length);
                     <app-participant-card [vote]="vote" [participantName]="participantName()!" [top]="pos.top"
                         [left]="pos.left" [namePosition]="pos.namePosition" (cardClicked)="onParticipantCardClick($event)" />
                     }
                     }
-                    } @else {
+
+                    @if (!hasParticipants()) {
                     <!-- Mensagem quando não há participantes ainda -->
                     <div class="no-participants-message">
                         <p>Aguardando participantes...</p>
@@ -98,6 +90,22 @@
                     </div>
                     }
                 </div>
+
+                <!-- Cartas reveladas em fileira ABAIXO da mesa -->
+                @if (hasParticipants() && (session()!.status === 'REVEALED' || session()!.status === 'CLOSED')) {
+                <div class="revealed-cards-row">
+                    @for (vote of revealedVotes(); track vote.id) {
+                    <div class="revealed-card-wrapper">
+                        <span class="revealed-card-name" [title]="vote.participantName">{{ vote.participantName }}</span>
+                        <div class="revealed-card" [class.revealed]="vote.revealed" (click)="onRevealedCardClick($event, vote)">
+                            <div class="card-corner top-left">{{ vote.value }}</div>
+                            <div class="card-value-center">{{ vote.value }}</div>
+                            <div class="card-corner bottom-right">{{ vote.value }}</div>
+                        </div>
+                    </div>
+                    }
+                </div>
+                }
             </div>
 
             <!-- Progress List (Right Sidebar) -->

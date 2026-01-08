@@ -4,7 +4,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.25rem; /* Gap menor para nome ficar mais próximo da carta */
+    gap: 0.125rem; /* Gap pequeno para nome ficar bem próximo da carta */
     z-index: 10;
     pointer-events: none;
     user-select: none;
@@ -276,28 +276,32 @@
 }
 
 .participant-name {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: white;
-    background: rgba(0, 0, 0, 0.6);
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 0.15rem 0.5rem;
+    border-radius: 8px;
     white-space: nowrap;
-    max-width: 120px;
+    max-width: 90px;
     overflow: hidden;
     text-overflow: ellipsis;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
     transition: opacity 0.3s ease, transform 0.3s ease;
+    line-height: 1.2;
 }
 
 /* Quando o nome está em cima (fileira revelada) */
 .participant-card.name-top {
-    gap: 0.5rem; /* Mais espaço entre nome e carta quando em fileira */
+    gap: 0.2rem; /* Espaço pequeno entre nome e carta */
 }
 
 .participant-card.name-top .participant-name {
     order: -1; /* Garantir que o nome fique acima da carta */
     margin-bottom: 0;
+    font-size: 0.65rem;
+    padding: 0.1rem 0.4rem;
+    max-width: 70px;
 }
 
 /* Responsividade */
@@ -320,9 +324,14 @@
     }
 
     .participant-name {
-        font-size: 0.65rem;
-        padding: 0.2rem 0.5rem;
-        max-width: 80px;
+        font-size: 0.6rem;
+        padding: 0.1rem 0.4rem;
+        max-width: 60px;
+    }
+    
+    .participant-card.name-top .participant-name {
+        font-size: 0.55rem;
+        max-width: 55px;
     }
 }
 
@@ -345,7 +354,13 @@
     }
 
     .participant-name {
-        font-size: 0.6rem;
-        max-width: 70px;
+        font-size: 0.55rem;
+        padding: 0.1rem 0.35rem;
+        max-width: 50px;
+    }
+    
+    .participant-card.name-top .participant-name {
+        font-size: 0.5rem;
+        max-width: 45px;
     }
 }
