@@ -91,7 +91,8 @@ public class ServicoPokerSession {
         log.info("Criando nova sessão de poker: {} com modo: {}", dto.name(), dto.mode());
         var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
 
-        var session = new PokerSession(dto.name(), dto.mode() != null ? dto.mode() : com.planningpoker.dominio.enums.SessionMode.EFFORT_ESTIMATION);
+        var session = new PokerSession(dto.name(),
+                dto.mode() != null ? dto.mode() : com.planningpoker.dominio.enums.SessionMode.EFFORT_ESTIMATION);
 
         if (dto.storyId() != null) {
             var story = storyRepository.findByIdAndOwnerId(dto.storyId(), usuario.getId())
@@ -113,7 +114,7 @@ public class ServicoPokerSession {
     }
 
     @Transactional
-    public Vote votar(VoteRequestDTO dto) {
+    public VoteDTO votar(VoteRequestDTO dto) {
         var usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
         log.info("Registrando voto (userId={}): {} -> {}", usuario.getId(), dto.participantName(), dto.value());
 
@@ -202,11 +203,18 @@ public class ServicoPokerSession {
         // Publicar evento para notificação via WebSocket
         eventPublisher.publishEvent(new PokerSessionEvent(this, dto.sessionId(), "VOTE"));
 
-        return savedVote;
+        // Retornar DTO para evitar problemas de serialização
+        return new VoteDTO(
+                savedVote.getId(),
+                savedVote.getParticipantName(),
+                savedVote.getValue(),
+                savedVote.isRevealed(),
+                savedVote.hasVoted()
+        );
     }
 
     @Transactional
-    public PokerSession revelarVotos(Long sessionId) {
+    public PokerSessionDTO revelarVotos(Long sessionId) {
         log.info("Revelando votos da sessão: {}", sessionId);
 
         var session = sessionRepository.findByIdWithVotes(sessionId)
@@ -217,16 +225,19 @@ public class ServicoPokerSession {
         }
 
         session.revealVotes();
-        var savedSession = sessionRepository.save(session);
+        sessionRepository.save(session);
 
         // Publicar evento para notificação via WebSocket
         eventPublisher.publishEvent(new PokerSessionEvent(this, sessionId, "REVEAL"));
 
-        return savedSession;
+        // Buscar novamente e retornar como DTO
+        var updatedSession = sessionRepository.findByIdWithVotes(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("PokerSession", sessionId));
+        return toDTO(updatedSession, null);
     }
 
     @Transactional
-    public PokerSession resetarVotos(Long sessionId) {
+    public PokerSessionDTO resetarVotos(Long sessionId) {
         log.info("Resetando votos da sessão: {}", sessionId);
 
         var session = sessionRepository.findByIdWithVotes(sessionId)
@@ -235,12 +246,15 @@ public class ServicoPokerSession {
         // Resetar apenas os valores dos votos, mantendo os participantes na sessão
         session.resetVotes();
 
-        var savedSession = sessionRepository.save(session);
+        sessionRepository.save(session);
 
         // Publicar evento para notificação via WebSocket
         eventPublisher.publishEvent(new PokerSessionEvent(this, sessionId, "RESET"));
 
-        return savedSession;
+        // Buscar novamente e retornar como DTO
+        var updatedSession = sessionRepository.findByIdWithVotes(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("PokerSession", sessionId));
+        return toDTO(updatedSession, null);
     }
 
     @Transactional

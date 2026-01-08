@@ -570,22 +570,14 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
     revealVotes() {
         const session = this.session();
         if (!session) return;
-        this.pokerService.revelarVotos(session.id).subscribe({
-            next: () => {
-                this.pokerService.buscarSessao(session.id).subscribe();
-            }
-        });
+        this.pokerService.revelarVotos(session.id).subscribe();
     }
 
     resetVotes() {
         const session = this.session();
         if (!session) return;
         this.selectedCard.set(null);
-        this.pokerService.resetarVotos(session.id).subscribe({
-            next: () => {
-                this.pokerService.buscarSessao(session.id).subscribe();
-            }
-        });
+        this.pokerService.resetarVotos(session.id).subscribe();
     }
 
     private startPolling(sessionId: number) {

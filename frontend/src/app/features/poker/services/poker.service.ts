@@ -175,9 +175,11 @@ export class PokerService {
     revelarVotos(sessionId: number): Observable<PokerSession> {
         return this.http.post<PokerSession>(`${this.baseUrl}/sessions/${sessionId}/reveal`, {}).pipe(
             tap((session) => {
+                // Garantir que votes sempre seja um array
+                if (!session.votes) {
+                    session.votes = [];
+                }
                 this.currentSession.set(session);
-                // Busca atualização completa
-                this.buscarSessao(sessionId).subscribe();
             })
         );
     }
@@ -185,9 +187,11 @@ export class PokerService {
     resetarVotos(sessionId: number): Observable<PokerSession> {
         return this.http.post<PokerSession>(`${this.baseUrl}/sessions/${sessionId}/reset`, {}).pipe(
             tap((session) => {
+                // Garantir que votes sempre seja um array
+                if (!session.votes) {
+                    session.votes = [];
+                }
                 this.currentSession.set(session);
-                // Busca atualização completa
-                this.buscarSessao(sessionId).subscribe();
             })
         );
     }

@@ -3,7 +3,6 @@ package com.planningpoker.interfaces.rest.v1.controller;
 import com.planningpoker.aplicacao.ServicoPokerSession;
 import com.planningpoker.dominio.dto.*;
 import com.planningpoker.dominio.entidade.PokerSession;
-import com.planningpoker.dominio.entidade.Vote;
 import com.planningpoker.dominio.enums.SessionStatus;
 import com.planningpoker.interfaces.rest.v1.PokerSessionAPI;
 import lombok.RequiredArgsConstructor;
@@ -39,17 +38,17 @@ public class PokerSessionController implements PokerSessionAPI {
     }
 
     @Override
-    public ResponseEntity<Vote> votar(VoteRequestDTO dto) {
+    public ResponseEntity<VoteDTO> votar(VoteRequestDTO dto) {
         return ResponseEntity.ok(servicoPokerSession.votar(dto));
     }
 
     @Override
-    public ResponseEntity<PokerSession> revelarVotos(Long id) {
+    public ResponseEntity<PokerSessionDTO> revelarVotos(Long id) {
         return ResponseEntity.ok(servicoPokerSession.revelarVotos(id));
     }
 
     @Override
-    public ResponseEntity<PokerSession> resetarVotos(Long id) {
+    public ResponseEntity<PokerSessionDTO> resetarVotos(Long id) {
         return ResponseEntity.ok(servicoPokerSession.resetarVotos(id));
     }
 
