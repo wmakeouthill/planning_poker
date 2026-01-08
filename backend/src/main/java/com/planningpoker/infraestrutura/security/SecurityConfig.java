@@ -57,6 +57,9 @@ public class SecurityConfig {
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         
+                        // WebSocket endpoint - permitir para handshake inicial
+                        .requestMatchers("/ws/**").permitAll()
+                        
                         // Demais endpoints requerem autenticação
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -71,14 +74,34 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("Authorization"));
+        // Configuração para endpoints REST (permite credenciais para JWT)
+        CorsConfiguration restConfiguration = new CorsConfiguration();
+        restConfiguration.setAllowedOriginPatterns(List.of(
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+            "https://*"
+        ));
+        restConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        restConfiguration.setAllowedHeaders(List.of("*"));
+        restConfiguration.setExposedHeaders(List.of("Authorization"));
+        restConfiguration.setAllowCredentials(true); // Permitir credenciais para JWT
+
+        // Configuração para WebSocket (não permite credenciais para evitar problemas de CORS)
+        CorsConfiguration wsConfiguration = new CorsConfiguration();
+        wsConfiguration.setAllowedOriginPatterns(List.of(
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+            "https://*"
+        ));
+        wsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "OPTIONS"));
+        wsConfiguration.setAllowedHeaders(List.of("*"));
+        wsConfiguration.setAllowCredentials(false); // WebSocket não precisa de credenciais
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+        source.registerCorsConfiguration("/api/**", restConfiguration);
+        source.registerCorsConfiguration("/ws/**", wsConfiguration);
+        // Configuração padrão para outros endpoints
+        source.registerCorsConfiguration("/**", restConfiguration);
         return source;
     }
 }

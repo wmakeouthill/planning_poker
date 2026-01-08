@@ -117,12 +117,6 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
     });
 
     constructor() {
-        // Nada aqui - effects serão configurados em ngOnInit
-    }
-
-    ngOnInit() {
-        this.pokerService.loadParticipantName();
-
         // Effect para sincronizar selectedCard com myVote
         effect(() => {
             const myVote = this.myVote();
@@ -174,6 +168,10 @@ export class PokerRoomComponent implements OnInit, OnDestroy {
                 }
             }
         });
+    }
+
+    ngOnInit() {
+        this.pokerService.loadParticipantName();
 
         // Verificar se há um ID na rota
         const sessionId = this.route.snapshot.paramMap.get('id');

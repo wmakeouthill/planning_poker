@@ -1,8 +1,10 @@
 import { Injectable, signal, OnDestroy } from '@angular/core';
 import { Client, IMessage } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 import { PokerSession } from '../models/poker.model';
 import { getApiUrl } from '../../../core/utils/api-url';
+
+// Importação do SockJS - o polyfill global está no index.html
+declare const SockJS: any;
 
 export interface PokerSessionUpdate {
     id: number;
@@ -89,58 +91,75 @@ export class PokerWebSocketService implements OnDestroy {
         const apiUrl = getApiUrl();
         const wsUrl = this.getWebSocketUrl(apiUrl);
 
-        this.client = new Client({
-            webSocketFactory: () => new SockJS(wsUrl) as any,
-            reconnectDelay: 5000,
-            heartbeatIncoming: 4000,
-            heartbeatOutgoing: 4000,
-            debug: (str) => {
-                // Log apenas em desenvolvimento
-                if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-                    console.debug('[STOMP]', str);
+        // Importar SockJS dinamicamente para evitar problemas com polyfills
+        import('sockjs-client').then(SockJSModule => {
+            const SockJSClass = SockJSModule.default || SockJSModule;
+
+            this.client = new Client({
+                webSocketFactory: () => {
+                    // Criar instância do SockJS sem credenciais
+                    // Passar null como protocol (usa o padrão) e opções para desabilitar credenciais
+                    const options: any = {
+                        transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
+                        withCredentials: false // Desabilitar envio de credenciais para evitar problemas de CORS
+                    };
+                    const sock = new SockJSClass(wsUrl, null, options);
+                    return sock as any;
+                },
+                reconnectDelay: 5000,
+                heartbeatIncoming: 4000,
+                heartbeatOutgoing: 4000,
+                debug: (str) => {
+                    // Log apenas em desenvolvimento
+                    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+                        console.debug('[STOMP]', str);
+                    }
+                },
+                onConnect: () => {
+                    console.log('[WebSocket] Conectado à sessão', sessionId);
+                    this.isConnected.set(true);
+                    this.connectionError.set(null);
+                    this.reconnectAttempts = 0;
+
+                    // Inscrever-se nas atualizações da sessão
+                    this.subscribeToSessionUpdates(sessionId);
+
+                    // Inscrever-se nos eventos de animação
+                    this.subscribeToAnimations(sessionId);
+                },
+                onStompError: (frame) => {
+                    console.error('[WebSocket] Erro STOMP:', frame);
+                    this.connectionError.set(frame.headers['message'] || 'Erro de conexão WebSocket');
+                    this.isConnected.set(false);
+                },
+                onWebSocketClose: () => {
+                    console.log('[WebSocket] Desconectado');
+                    this.isConnected.set(false);
+                    this.connectionError.set('Conexão WebSocket fechada');
+
+                    // Tentar reconectar se não foi uma desconexão manual
+                    if (this.connectedSessionId !== null && this.reconnectAttempts < this.maxReconnectAttempts) {
+                        this.reconnectAttempts++;
+                        setTimeout(() => {
+                            if (this.connectedSessionId !== null) {
+                                console.log(`[WebSocket] Tentando reconectar (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+                                this.connect(this.connectedSessionId);
+                            }
+                        }, 5000);
+                    }
+                },
+                onWebSocketError: (event) => {
+                    console.error('[WebSocket] Erro:', event);
+                    this.connectionError.set('Erro na conexão WebSocket');
+                    this.isConnected.set(false);
                 }
-            },
-            onConnect: () => {
-                console.log('[WebSocket] Conectado à sessão', sessionId);
-                this.isConnected.set(true);
-                this.connectionError.set(null);
-                this.reconnectAttempts = 0;
+            });
 
-                // Inscrever-se nas atualizações da sessão
-                this.subscribeToSessionUpdates(sessionId);
-
-                // Inscrever-se nos eventos de animação
-                this.subscribeToAnimations(sessionId);
-            },
-            onStompError: (frame) => {
-                console.error('[WebSocket] Erro STOMP:', frame);
-                this.connectionError.set(frame.headers['message'] || 'Erro de conexão WebSocket');
-                this.isConnected.set(false);
-            },
-            onWebSocketClose: () => {
-                console.log('[WebSocket] Desconectado');
-                this.isConnected.set(false);
-                this.connectionError.set('Conexão WebSocket fechada');
-
-                // Tentar reconectar se não foi uma desconexão manual
-                if (this.connectedSessionId !== null && this.reconnectAttempts < this.maxReconnectAttempts) {
-                    this.reconnectAttempts++;
-                    setTimeout(() => {
-                        if (this.connectedSessionId !== null) {
-                            console.log(`[WebSocket] Tentando reconectar (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-                            this.connect(this.connectedSessionId);
-                        }
-                    }, 5000);
-                }
-            },
-            onWebSocketError: (event) => {
-                console.error('[WebSocket] Erro:', event);
-                this.connectionError.set('Erro na conexão WebSocket');
-                this.isConnected.set(false);
-            }
+            this.client.activate();
+        }).catch(error => {
+            console.error('[WebSocket] Erro ao carregar SockJS:', error);
+            this.connectionError.set('Erro ao carregar biblioteca WebSocket');
         });
-
-        this.client.activate();
     }
 
     /**

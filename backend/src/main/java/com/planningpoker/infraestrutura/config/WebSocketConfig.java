@@ -24,8 +24,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Registra o endpoint WebSocket
+        // Permitir origens específicas para evitar problemas de CORS com credenciais
+        // Usar padrões ao invés de * para evitar conflito com credenciais
         registry.addEndpoint("/ws/poker")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOriginPatterns(
+                    "http://localhost:*",
+                    "http://127.0.0.1:*",
+                    "https://*"
+                )
                 .withSockJS();
     }
 }
