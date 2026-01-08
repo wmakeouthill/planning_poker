@@ -15,6 +15,31 @@
     }
   </script>
 
+  <!-- GitHub Pages SPA redirect handler -->
+  <script>
+    (function() {
+      var redirect = sessionStorage.redirect;
+      delete sessionStorage.redirect;
+      if (redirect && redirect !== location.href) {
+        history.replaceState(null, null, redirect);
+      } else {
+        // Handle ?/path format from 404.html
+        var l = window.location;
+        if (l.search[1] === '/') {
+          var decoded = l.search.slice(1).split('&').map(function(s) {
+            return s.replace(/~and~/g, '&');
+          }).join('?');
+          var path = decoded.split('?')[0];
+          var query = decoded.split('?')[1] || '';
+          var newUrl = l.protocol + '//' + l.host + 
+            (document.querySelector('base') ? document.querySelector('base').href.replace(l.origin, '').replace(/\/$/, '') : '') +
+            '/' + path + (query ? '?' + query : '') + l.hash;
+          history.replaceState(null, null, newUrl);
+        }
+      }
+    })();
+  </script>
+
   <!-- Runtime Environment Configuration -->
   <script src="assets/env.js"></script>
 
