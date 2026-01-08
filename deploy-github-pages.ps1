@@ -46,7 +46,7 @@ try {
     Set-Content $envJsPath $envJsContent
     
     # Fazer build para GitHub Pages
-    npm run build -- --configuration=github-pages
+    npm run build:github-pages
     
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[ERRO] Erro ao fazer build!" -ForegroundColor Red

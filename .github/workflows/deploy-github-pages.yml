@@ -54,7 +54,7 @@ jobs:
       
       - name: Build for GitHub Pages
         working-directory: frontend
-        run: npm run build -- --configuration=github-pages
+        run: npm run build:github-pages
       
       - name: Copy 404.html
         run: cp frontend/public/404.html frontend/dist/frontend/browser/404.html
