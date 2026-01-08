@@ -80,7 +80,7 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
             this.blockElements?.forEach(el => {
                 const blockId = el.nativeElement.dataset['blockId'];
                 if (!blockId) return;
-                
+
                 const block = this.blocks().find(b => b.id === blockId);
                 if (block && typeof block.content === 'string') {
                     const content = block.content;
@@ -103,7 +103,7 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
         setTimeout(() => {
             toSync.forEach(blockId => {
                 if (!blockId) return;
-                
+
                 const blockEl = this.blockElements?.find(el => el.nativeElement.dataset['blockId'] === blockId);
                 const block = this.blocks().find(b => b.id === blockId);
                 if (blockEl && block && typeof block.content === 'string') {
@@ -665,15 +665,15 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
         const viewportHeight = window.innerHeight;
         const viewportWidth = window.innerWidth;
         const minSpacingFromEdge = 10; // espaçamento mínimo das bordas
-        
+
         // Calcula espaço disponível abaixo e acima
         const spaceBelow = viewportHeight - rect.bottom - minSpacingFromEdge;
         const spaceAbove = rect.top - minSpacingFromEdge;
-        
+
         // Determina se deve abrir para cima ou para baixo
         // Prioriza abrir para cima se não houver espaço suficiente abaixo
         const shouldOpenUp = spaceBelow < menuMaxHeight && (spaceAbove >= menuMaxHeight || spaceAbove > spaceBelow);
-        
+
         // Calcula posição vertical
         let top: number;
         if (shouldOpenUp) {
@@ -713,7 +713,7 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
                 }
             }
         }
-        
+
         // Calcula posição horizontal
         let left = rect.left;
         // Garante que não ultrapasse a borda direita
@@ -724,7 +724,7 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
         if (left < minSpacingFromEdge) {
             left = minSpacingFromEdge;
         }
-        
+
         this.slashMenuPosition.set({
             top: top,
             left: left
