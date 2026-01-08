@@ -1,5 +1,24 @@
 # Cloud Build configuration para Google Cloud Run com Cloud SQL
+# FREE TIER - Sao Paulo (southamerica-east1)
+# IMPORTANTE: Criar o repositorio antes de usar:
+#   gcloud artifacts repositories create planning-poker-repo --repository-format=docker --location=southamerica-east1
+
 steps:
+  # Step 0: Criar repositorio no Artifact Registry (idempotente)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        gcloud artifacts repositories describe planning-poker-repo \
+          --location=southamerica-east1 \
+          --project=$PROJECT_ID 2>/dev/null || \
+        gcloud artifacts repositories create planning-poker-repo \
+          --repository-format=docker \
+          --location=southamerica-east1 \
+          --description="Planning Poker Docker images" \
+          --project=$PROJECT_ID
+
   # Build da imagem Docker
   - name: 'gcr.io/cloud-builders/docker'
     args:
@@ -11,9 +30,9 @@ steps:
       - '--build-arg'
       - 'NG_APP_API_URL=${_NG_APP_API_URL}'
       - '-t'
-      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:$BUILD_ID'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker-repo/app:$BUILD_ID'
       - '-t'
-      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:latest'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker-repo/app:latest'
       - '.'
     timeout: '1800s'
 
@@ -21,14 +40,14 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:$BUILD_ID'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker-repo/app:$BUILD_ID'
 
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:latest'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker-repo/app:latest'
 
-  # Deploy no Cloud Run
+  # Deploy no Cloud Run (FREE TIER)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -36,7 +55,7 @@ steps:
       - 'deploy'
       - 'planning-poker'
       - '--image'
-      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:$BUILD_ID'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker-repo/app:$BUILD_ID'
       - '--region'
       - '${_REGION}'
       - '--platform'
@@ -54,6 +73,7 @@ steps:
       - '0'
       - '--port'
       - '8080'
+      - '--cpu-throttling'
       - '--add-cloudsql-instances'
       - '${_CLOUD_SQL_CONNECTION}'
       - '--set-secrets'
@@ -68,13 +88,13 @@ options:
 timeout: '2400s'
 
 images:
-  - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:$BUILD_ID'
-  - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker/app:latest'
+  - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker-repo/app:$BUILD_ID'
+  - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/planning-poker-repo/app:latest'
 
 substitutions:
   _REGION: 'southamerica-east1'
   _CLOUD_SQL_CONNECTION: 'experimenta-ai-soneca-balcao:southamerica-east1:experimenta-ai-balcao'
   _DB_NAME: 'planningpoker'
-  _DB_USERNAME: 'planningpoker_user'
+  _DB_USERNAME: 'root'
   _GOOGLE_CLIENT_ID: '385827294764-ns6i99hvsiu9muvmjrj6rbgjv26sba5g.apps.googleusercontent.com'
   _NG_APP_API_URL: ''

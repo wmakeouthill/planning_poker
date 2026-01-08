@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Planning Poker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    // GitHub Pages precisa deste arquivo para SPA funcionar
+    // Redireciona todas as rotas para index.html
+    // O Angular Router cuidará do roteamento depois
+    var basePath = '/planning_poker/'; // Ajuste conforme o nome do seu repositório
+    var path = window.location.pathname;
+    
+    // Se não estiver no index.html, redirecionar
+    if (!path.endsWith('index.html')) {
+      var indexPath = basePath + 'index.html';
+      var queryString = window.location.search;
+      var hash = window.location.hash;
+      window.location.replace(indexPath + queryString + hash);
+    }
+  </script>
+</head>
+<body>
+  <p>Redirecionando...</p>
+  <noscript>
+    <p>Por favor, habilite JavaScript para acessar esta aplicação.</p>
+  </noscript>
+</body>
+</html>

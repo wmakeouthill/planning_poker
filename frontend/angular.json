@@ -70,6 +70,22 @@
               ],
               "outputHashing": "all"
             },
+            "github-pages": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kB",
+                  "maximumError": "1MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "10kB",
+                  "maximumError": "16kB"
+                }
+              ],
+              "outputHashing": "all",
+              "baseHref": "/planning_poker/"
+            },
             "development": {
               "optimization": false,
               "extractLicenses": false,

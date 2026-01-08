@@ -3,8 +3,8 @@
     z-index: 1000;
     min-width: 280px;
     max-width: 340px;
-    max-height: 400px;
     overflow-y: auto;
+    overflow-x: hidden;
     background: rgba(15, 23, 42, 0.98);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -15,17 +15,21 @@
         0 0 0 1px rgba(255, 255, 255, 0.05) inset;
     padding: 0.5rem;
     animation: slideIn 0.15s ease-out;
+    /* Garante que o menu nunca seja cortado pela viewport */
+    max-height: min(400px, calc(100vh - 20px));
+    /* Garante que o menu sempre fique visível */
+    contain: layout style paint;
 }
 
 @keyframes slideIn {
     from {
         opacity: 0;
-        transform: translateY(-8px);
+        transform: scale(0.95);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: scale(1);
     }
 }
 

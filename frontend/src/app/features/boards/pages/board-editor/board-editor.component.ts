@@ -659,9 +659,75 @@ export class BoardEditorComponent implements OnInit, AfterViewInit, AfterViewChe
 
     private openSlashMenu(element: HTMLElement, blockId: string) {
         const rect = element.getBoundingClientRect();
+        const menuMaxHeight = 400; // max-height do menu
+        const menuWidth = 340; // max-width do menu
+        const spacing = 8; // espaçamento entre elemento e menu
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+        const minSpacingFromEdge = 10; // espaçamento mínimo das bordas
+        
+        // Calcula espaço disponível abaixo e acima
+        const spaceBelow = viewportHeight - rect.bottom - minSpacingFromEdge;
+        const spaceAbove = rect.top - minSpacingFromEdge;
+        
+        // Determina se deve abrir para cima ou para baixo
+        // Prioriza abrir para cima se não houver espaço suficiente abaixo
+        const shouldOpenUp = spaceBelow < menuMaxHeight && (spaceAbove >= menuMaxHeight || spaceAbove > spaceBelow);
+        
+        // Calcula posição vertical
+        let top: number;
+        if (shouldOpenUp) {
+            // Abre para cima: posiciona acima do elemento
+            top = rect.top - menuMaxHeight - spacing;
+            // Se ultrapassar o topo, ajusta para o máximo possível
+            if (top < minSpacingFromEdge) {
+                // Calcula altura máxima disponível acima
+                const availableHeight = rect.top - minSpacingFromEdge - spacing;
+                // Usa o mínimo entre altura disponível e altura máxima do menu
+                const actualHeight = Math.min(availableHeight, menuMaxHeight);
+                top = rect.top - actualHeight - spacing;
+                // Garante que não fique negativo
+                if (top < minSpacingFromEdge) {
+                    top = minSpacingFromEdge;
+                }
+            }
+        } else {
+            // Abre para baixo: posiciona abaixo do elemento
+            top = rect.bottom + spacing;
+            // Se ultrapassar a parte inferior, ajusta para o máximo possível
+            if (top + menuMaxHeight > viewportHeight - minSpacingFromEdge) {
+                // Calcula altura máxima disponível abaixo
+                const availableHeight = viewportHeight - top - minSpacingFromEdge;
+                // Se não houver espaço suficiente, tenta abrir para cima
+                if (availableHeight < menuMaxHeight * 0.5 && spaceAbove > availableHeight) {
+                    // Muda para abrir para cima
+                    const availableHeightAbove = rect.top - minSpacingFromEdge - spacing;
+                    const actualHeight = Math.min(availableHeightAbove, menuMaxHeight);
+                    top = rect.top - actualHeight - spacing;
+                    if (top < minSpacingFromEdge) {
+                        top = minSpacingFromEdge;
+                    }
+                } else {
+                    // Ajusta para caber na altura disponível
+                    top = viewportHeight - Math.min(availableHeight, menuMaxHeight) - minSpacingFromEdge;
+                }
+            }
+        }
+        
+        // Calcula posição horizontal
+        let left = rect.left;
+        // Garante que não ultrapasse a borda direita
+        if (left + menuWidth > viewportWidth - minSpacingFromEdge) {
+            left = viewportWidth - menuWidth - minSpacingFromEdge;
+        }
+        // Garante que não ultrapasse a borda esquerda
+        if (left < minSpacingFromEdge) {
+            left = minSpacingFromEdge;
+        }
+        
         this.slashMenuPosition.set({
-            top: rect.bottom + 5,
-            left: rect.left
+            top: top,
+            left: left
         });
         this.slashBlockId = blockId;
         this.slashFilter.set('');

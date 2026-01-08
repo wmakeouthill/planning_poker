@@ -1,5 +1,6 @@
-# Script de deploy para Google Cloud Run
+# Script de deploy para Google Cloud Run (FREE TIER)
 # Build LOCAL + Push para Artifact Registry + Deploy
+# Configurado para Sao Paulo (southamerica-east1) com Cloud SQL
 # Uso: .\deploy-cloud-run.ps1
 
 param(
@@ -14,23 +15,25 @@ function Write-ColorOutput {
     Write-Host $Message -ForegroundColor $Color
 }
 
-# Configuracoes
+# Configuracoes - Cloud SQL compartilhado com experimenta-ai
 $CloudSqlConnection = "experimenta-ai-soneca-balcao:southamerica-east1:experimenta-ai-balcao"
 $DbName = "planningpoker"
 $DbUsername = "root"
 $Registry = "southamerica-east1-docker.pkg.dev"
-$ImageName = "$Registry/$ProjectId/planning-poker/app"
+$RepoName = "planning-poker-repo"  # Nome do repositorio no Artifact Registry
+$ImageName = "$Registry/$ProjectId/$RepoName/app"
 $ImageTag = "latest"
 $FullImageName = "${ImageName}:${ImageTag}"
 
 Write-ColorOutput "========================================" "Cyan"
 Write-ColorOutput "  Deploy Planning Poker - Cloud Run    " "Cyan"
+Write-ColorOutput "  FREE TIER - Sao Paulo                " "Cyan"
 Write-ColorOutput "  (Build Local + Push + Deploy)        " "Cyan"
 Write-ColorOutput "========================================" "Cyan"
 Write-Host ""
 
 # Verificar Docker
-Write-ColorOutput "[1/8] Verificando Docker..." "Yellow"
+Write-ColorOutput "[1/9] Verificando Docker..." "Yellow"
 try {
     $null = Get-Command docker -ErrorAction Stop
     docker info 2>$null | Out-Null
@@ -38,7 +41,8 @@ try {
         Write-ColorOutput "ERRO: Docker nao esta rodando" "Red"
         exit 1
     }
-} catch {
+}
+catch {
     Write-ColorOutput "ERRO: Docker nao instalado" "Red"
     exit 1
 }
@@ -47,27 +51,59 @@ Write-Host "   Docker OK"
 # Verificar gcloud
 try {
     $null = Get-Command gcloud -ErrorAction Stop
-} catch {
+}
+catch {
     Write-ColorOutput "ERRO: gcloud CLI nao instalado" "Red"
     exit 1
 }
 
 # Configurar projeto
-Write-ColorOutput "[2/8] Configurando projeto GCP..." "Yellow"
+Write-ColorOutput "[2/9] Configurando projeto GCP..." "Yellow"
 gcloud config set project $ProjectId 2>$null
 gcloud auth configure-docker $Registry --quiet 2>$null
 
 # Habilitar APIs
-Write-ColorOutput "[3/8] Habilitando APIs..." "Yellow"
+Write-ColorOutput "[3/9] Habilitando APIs..." "Yellow"
 gcloud services enable artifactregistry.googleapis.com run.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com --project=$ProjectId 2>$null
 
+# Criar repositorio no Artifact Registry (se nao existir)
+Write-ColorOutput "[4/9] Criando repositorio no Artifact Registry..." "Yellow"
+$repoExists = gcloud artifacts repositories describe $RepoName --location=$Region --project=$ProjectId 2>$null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "   Criando repositorio $RepoName..."
+    gcloud artifacts repositories create $RepoName --repository-format=docker --location=$Region --description="Planning Poker Docker images" --project=$ProjectId 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-ColorOutput "ERRO: Falha ao criar repositorio" "Red"
+        exit 1
+    }
+    Write-Host "   Repositorio criado!"
+}
+else {
+    Write-Host "   Repositorio ja existe"
+}
+
 # Ler .env
-Write-ColorOutput "[4/8] Lendo variaveis do .env..." "Yellow"
+Write-ColorOutput "[5/9] Lendo variaveis do .env..." "Yellow"
 $envVars = @{}
 if (Test-Path ".env") {
     Get-Content ".env" | ForEach-Object {
-        if ($_ -match '^\s*([^#][^=]+)=(.*)$') {
-            $envVars[$matches[1].Trim()] = $matches[2].Trim().Trim('"').Trim("'")
+        $line = $_.Trim()
+        # Ignorar linhas vazias ou comentarios
+        if ($line -and -not $line.StartsWith('#')) {
+            # Encontrar o primeiro '=' para separar chave do valor
+            $eqIndex = $line.IndexOf('=')
+            if ($eqIndex -gt 0) {
+                $key = $line.Substring(0, $eqIndex).Trim()
+                $value = $line.Substring($eqIndex + 1)
+                
+                # Remover aspas do inicio e fim, preservando conteudo interno (incluindo #)
+                if (($value.StartsWith('"') -and $value.EndsWith('"')) -or 
+                    ($value.StartsWith("'") -and $value.EndsWith("'"))) {
+                    $value = $value.Substring(1, $value.Length - 2)
+                }
+                
+                $envVars[$key] = $value
+            }
         }
     }
 }
@@ -88,12 +124,12 @@ if (-not $GoogleClientId -or -not $JwtSecret -or -not $DbPassword) {
 Write-Host "   Variaveis carregadas"
 
 # Criar/Atualizar secrets
-Write-ColorOutput "[5/8] Configurando secrets..." "Yellow"
+Write-ColorOutput "[6/9] Configurando secrets..." "Yellow"
 $secrets = @{
-    "db-password" = $DbPassword
-    "jwt-secret" = $JwtSecret
+    "db-password"          = $DbPassword
+    "jwt-secret"           = $JwtSecret
     "google-client-secret" = $GoogleClientSecret
-    "google-client-id" = $GoogleClientId
+    "google-client-id"     = $GoogleClientId
 }
 
 # foreach ($secret in $secrets.GetEnumerator()) {
@@ -109,7 +145,7 @@ $secrets = @{
 Write-Host "   Pulando criacao automatica de secrets (gerenciamento manual)"
 
 # Configurar permissoes IAM
-Write-ColorOutput "[6/8] Configurando permissoes IAM..." "Yellow"
+Write-ColorOutput "[7/9] Configurando permissoes IAM..." "Yellow"
 $ProjectNumber = gcloud projects describe $ProjectId --format="value(projectNumber)" 2>$null
 $CloudRunSA = "${ProjectNumber}-compute@developer.gserviceaccount.com"
 
@@ -120,7 +156,7 @@ gcloud projects add-iam-policy-binding experimenta-ai-soneca-balcao --member="se
 Write-Host "   Permissoes configuradas"
 
 # Build LOCAL da imagem Docker
-Write-ColorOutput "[7/8] Fazendo BUILD LOCAL da imagem Docker..." "Yellow"
+Write-ColorOutput "[8/9] Fazendo BUILD LOCAL da imagem Docker..." "Yellow"
 Write-ColorOutput "   Isso pode levar alguns minutos..." "Cyan"
 
 # Determinar URL da API
@@ -140,7 +176,7 @@ if ($LASTEXITCODE -ne 0) {
 Write-ColorOutput "   Build concluido!" "Green"
 
 # Push para Artifact Registry
-Write-ColorOutput "[8/8] Fazendo PUSH para Artifact Registry..." "Yellow"
+Write-ColorOutput "[9/9] Fazendo PUSH para Artifact Registry..." "Yellow"
 docker push $FullImageName
 
 if ($LASTEXITCODE -ne 0) {
@@ -156,7 +192,23 @@ $DbUrl = "jdbc:mysql:///${DbName}?cloudSqlInstance=${CloudSqlConnection}&socketF
 $envVarsStr = "SPRING_DATASOURCE_URL=$DbUrl,SPRING_DATASOURCE_USERNAME=$DbUsername,JWT_EXPIRATION=86400000,SPRING_PROFILES_ACTIVE=prod,GOOGLE_CLIENT_ID=$GoogleClientId"
 $secretsStr = "SPRING_DATASOURCE_PASSWORD=db-password:latest,JWT_SECRET=jwt-secret:latest,GOOGLE_CLIENT_SECRET=google-client-secret:latest"
 
-gcloud run deploy planning-poker --image $FullImageName --region $Region --platform managed --allow-unauthenticated --memory 1Gi --cpu 1 --timeout 300 --max-instances 2 --min-instances 0 --port 8080 --add-cloudsql-instances $CloudSqlConnection --set-secrets $secretsStr --set-env-vars $envVarsStr --project=$ProjectId
+# FREE TIER: 512Mi memoria, 1 CPU, scale-to-zero, max 2 instancias
+gcloud run deploy planning-poker `
+    --image $FullImageName `
+    --region $Region `
+    --platform managed `
+    --allow-unauthenticated `
+    --memory 512Mi `
+    --cpu 1 `
+    --timeout 300 `
+    --max-instances 2 `
+    --min-instances 0 `
+    --port 8080 `
+    --add-cloudsql-instances $CloudSqlConnection `
+    --set-secrets $secretsStr `
+    --set-env-vars $envVarsStr `
+    --cpu-throttling `
+    --project=$ProjectId
 
 if ($LASTEXITCODE -ne 0) {
     Write-ColorOutput "ERRO: Falha no deploy" "Red"
