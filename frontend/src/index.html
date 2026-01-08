@@ -31,7 +31,7 @@
           }).join('?');
           var path = decoded.split('?')[0];
           var query = decoded.split('?')[1] || '';
-          var newUrl = l.protocol + '//' + l.host + 
+          var newUrl = l.protocol + '//' + l.host +
             (document.querySelector('base') ? document.querySelector('base').href.replace(l.origin, '').replace(/\/$/, '') : '') +
             '/' + path + (query ? '?' + query : '') + l.hash;
           history.replaceState(null, null, newUrl);
