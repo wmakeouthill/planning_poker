@@ -84,7 +84,7 @@
                 }
               ],
               "outputHashing": "all",
-              "baseHref": "/planning_poker/"
+              "baseHref": "/poker/"
             },
             "development": {
               "optimization": false,
