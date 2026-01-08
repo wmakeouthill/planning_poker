@@ -39,6 +39,16 @@
 
     <!-- Footer -->
     <div class="sidebar-footer">
+        @if (isAuthenticated()) {
+        <button class="logout-btn" (click)="onLogout()" [title]="isOpen ? '' : 'Sair'">
+            <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9" />
+            </svg>
+            @if (isOpen) {
+            <span class="logout-label">Sair</span>
+            }
+        </button>
+        }
         @if (isOpen) {
         <div class="footer-info">
             <span class="version">v1.0.0</span>

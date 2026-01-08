@@ -1,5 +1,6 @@
-import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, Input, Output, EventEmitter, signal, inject } from '@angular/core';
+import { RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { AuthService } from '../../features/auth/services/auth.service';
 
 interface NavItem {
     label: string;
@@ -17,6 +18,11 @@ interface NavItem {
 export class SidebarComponent {
     @Input() isOpen = true;
     @Output() toggle = new EventEmitter<void>();
+
+    private readonly authService = inject(AuthService);
+    private readonly router = inject(Router);
+
+    readonly isAuthenticated = this.authService.isAuthenticated;
 
     navItems: NavItem[] = [
         {
@@ -38,5 +44,10 @@ export class SidebarComponent {
 
     onToggle() {
         this.toggle.emit();
+    }
+
+    onLogout() {
+        this.authService.logout();
+        this.router.navigate(['/auth/login']);
     }
 }
