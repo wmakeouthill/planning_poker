@@ -46,8 +46,8 @@
             AND author = 'planning-poker';
         </sql>
         
-        <!-- Dropar tabelas usando SQL condicional para evitar erros se não existirem -->
-        <sql>
+        <!-- Dropar tabelas - MySQL (usa FOREIGN_KEY_CHECKS) -->
+        <sql dbms="mysql">
             SET FOREIGN_KEY_CHECKS = 0;
             
             -- Dropar PP_VOTE (em qualquer variação de nome)
@@ -67,6 +67,18 @@
             DROP TABLE IF EXISTS PP_BOARD;
             
             SET FOREIGN_KEY_CHECKS = 1;
+        </sql>
+        
+        <!-- Dropar tabelas - PostgreSQL (usa CASCADE) -->
+        <sql dbms="postgresql">
+            DROP TABLE IF EXISTS pp_vote CASCADE;
+            DROP TABLE IF EXISTS PP_VOTE CASCADE;
+            DROP TABLE IF EXISTS pp_poker_session CASCADE;
+            DROP TABLE IF EXISTS PP_POKER_SESSION CASCADE;
+            DROP TABLE IF EXISTS pp_story CASCADE;
+            DROP TABLE IF EXISTS PP_STORY CASCADE;
+            DROP TABLE IF EXISTS pp_board CASCADE;
+            DROP TABLE IF EXISTS PP_BOARD CASCADE;
         </sql>
         
         <!-- Recriar tabela PP_BOARD -->

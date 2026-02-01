@@ -96,7 +96,7 @@ Editor de blocos rico e intuitivo, similar ao Notion, com suporte a:
 - **Spring Security** - Autenticação e autorização
 - **Spring WebSocket** - Comunicação em tempo real
 - **JPA/Hibernate** - ORM
-- **MySQL 8.0** - Banco de dados
+- **PostgreSQL 9.5+** - Banco de dados
 - **Liquibase** - Migrations
 - **JWT** - Tokens de autenticação
 - **Maven** - Gerenciamento de dependências
@@ -116,7 +116,7 @@ Editor de blocos rico e intuitivo, similar ao Notion, com suporte a:
 - **Docker** & **Docker Compose** - Containerização
 - **Google Cloud Run** - Deploy em produção
 - **GitHub Actions** - CI/CD
-- **MySQL** - Banco de dados em produção
+- **PostgreSQL** - Banco de dados em produção (UOL Host)
 
 ## 🏗️ Arquitetura
 
@@ -150,7 +150,7 @@ frontend/
 - **Node.js 22 LTS** ou superior
 - **Maven 3.8+**
 - **Docker** e **Docker Compose** (opcional, mas recomendado)
-- **MySQL 8.0** (se não usar Docker)
+- **PostgreSQL 9.5+** (se não usar Docker)
 
 ## 🚀 Instalação e Execução
 
@@ -167,12 +167,14 @@ cd planning_poker
 Crie um arquivo `.env` na raiz do projeto:
 
 ```env
-MYSQL_DATABASE=planningpoker
-MYSQL_USER=planningpoker
-MYSQL_PASSWORD=sua_senha_aqui
-MYSQL_ROOT_PASSWORD=senha_root_aqui
+PG_DATABASE=planningpoker
+PG_USER=planningpoker
+PG_PASSWORD=sua_senha_aqui
 JWT_SECRET=seu_jwt_secret_aqui
 JWT_EXPIRATION=86400000
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/planningpoker
+SPRING_DATASOURCE_USERNAME=planningpoker
+SPRING_DATASOURCE_PASSWORD=sua_senha_aqui
 GOOGLE_CLIENT_ID=seu_google_client_id (opcional)
 GOOGLE_CLIENT_SECRET=seu_google_client_secret (opcional)
 NG_APP_API_URL=http://localhost:8080/api
@@ -190,13 +192,13 @@ docker-compose up -d
 - Frontend: <http://localhost:4200>
 - Backend API: <http://localhost:8080/api>
 - Swagger/OpenAPI: <http://localhost:8080/swagger-ui.html>
-- phpMyAdmin (opcional): <http://localhost:8081> (use `--profile tools`)
+- pgAdmin (opcional): <http://localhost:8081> (use `--profile tools`)
 
 ### Opção 2: Execução Local
 
 #### Backend
 
-1. **Configure o banco de dados MySQL:**
+1. **Configure o banco de dados PostgreSQL:**
 
 ```sql
 CREATE DATABASE planningpoker;
@@ -207,7 +209,7 @@ CREATE DATABASE planningpoker;
 ```yaml
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/planningpoker
+    url: jdbc:postgresql://localhost:5432/planningpoker
     username: seu_usuario
     password: sua_senha
 ```

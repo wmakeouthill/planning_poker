@@ -10,9 +10,9 @@ services:
       - "5005:5005"
     environment:
       - SPRING_PROFILES_ACTIVE=dev
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-planningpoker}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Sao_Paulo
-      - SPRING_DATASOURCE_USERNAME=${MYSQL_USER:-planningpoker}
-      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${PG_DATABASE:-planningpoker}
+      - SPRING_DATASOURCE_USERNAME=${PG_USER:-planningpoker}
+      - SPRING_DATASOURCE_PASSWORD=${PG_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
@@ -25,7 +25,7 @@ services:
       # Usar volume anônimo para sobrescrever apenas o diretório target
       - /app/target
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     networks:
       - planning-poker-network
@@ -52,49 +52,47 @@ services:
       - planning-poker-network
     command: npm run start -- --host 0.0.0.0 --poll 2000
 
-  # MySQL Database
-  mysql:
-    image: mysql:8.0
-    container_name: planning-poker-mysql
+  # PostgreSQL Database
+  postgres:
+    image: postgres:9.5
+    container_name: planning-poker-postgres
     ports:
-      - "3306:3306"
+      - "5432:5432"
     environment:
-      - MYSQL_DATABASE=${MYSQL_DATABASE:-planningpoker}
-      - MYSQL_USER=${MYSQL_USER:-planningpoker}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - POSTGRES_DB=${PG_DATABASE:-planningpoker}
+      - POSTGRES_USER=${PG_USER:-planningpoker}
+      - POSTGRES_PASSWORD=${PG_PASSWORD}
     volumes:
-      - mysql-data:/var/lib/mysql
-      - ./docker/init-db:/docker-entrypoint-initdb.d
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: [ "CMD-SHELL", "pg_isready -U ${PG_USER:-planningpoker}" ]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - planning-poker-network
 
-  # phpMyAdmin (opcional - use: docker-compose --profile tools up)
-  phpmyadmin:
-    image: phpmyadmin:latest
-    container_name: planning-poker-phpmyadmin
+  # pgAdmin (opcional - use: docker-compose --profile tools up)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: planning-poker-pgadmin
     ports:
       - "8081:80"
     environment:
-      - PMA_HOST=mysql
-      - PMA_USER=${MYSQL_USER:-planningpoker}
-      - PMA_PASSWORD=${MYSQL_PASSWORD}
+      - PGADMIN_DEFAULT_EMAIL=admin@planningpoker.local
+      - PGADMIN_DEFAULT_PASSWORD=${PG_PASSWORD:-admin123}
     depends_on:
-      - mysql
+      - postgres
     networks:
       - planning-poker-network
     profiles:
       - tools
 
 volumes:
-  mysql-data:
+  postgres-data:
   maven-cache:
   frontend-node-modules:
+
 
 networks:
   planning-poker-network:

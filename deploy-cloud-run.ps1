@@ -1,6 +1,6 @@
 # Script de deploy para Google Cloud Run (FREE TIER)
 # Build LOCAL + Push para Artifact Registry + Deploy
-# Configurado para Sao Paulo (southamerica-east1) com Cloud SQL
+# Configurado para Sao Paulo (southamerica-east1) com PostgreSQL (UOL Host)
 # Uso: .\deploy-cloud-run.ps1
 
 param(
@@ -15,10 +15,11 @@ function Write-ColorOutput {
     Write-Host $Message -ForegroundColor $Color
 }
 
-# Configuracoes - Cloud SQL compartilhado com experimenta-ai
-$CloudSqlConnection = "experimenta-ai-soneca-balcao:southamerica-east1:experimenta-ai-balcao"
-$DbName = "planningpoker"
-$DbUsername = "root"
+# Configuracoes - PostgreSQL (UOL Host)
+$DbHost = "postgresql.uhserver.com"
+$DbPort = "5432"
+$DbName = "star_wars_app"
+$DbUsername = "wmakeouthill"
 $Registry = "southamerica-east1-docker.pkg.dev"
 $RepoName = "planning-poker-repo"  # Nome do repositorio no Artifact Registry
 $ImageName = "$Registry/$ProjectId/$RepoName/app"
@@ -111,14 +112,20 @@ if (Test-Path ".env") {
 $GoogleClientId = $envVars["GOOGLE_CLIENT_ID"]
 $GoogleClientSecret = $envVars["GOOGLE_CLIENT_SECRET"]
 $JwtSecret = $envVars["JWT_SECRET"]
-$DbPassword = $envVars["MYSQL_PASSWORD"]
+$DbPassword = $envVars["PG_PASSWORD"]
+if (-not $DbPassword) {
+    $DbPassword = $envVars["SPRING_DATASOURCE_PASSWORD"]
+}
 if ($envVars["SPRING_DATASOURCE_USERNAME"]) {
     $DbUsername = $envVars["SPRING_DATASOURCE_USERNAME"]
+}
+if ($envVars["PG_USER"]) {
+    $DbUsername = $envVars["PG_USER"]
 }
 
 if (-not $GoogleClientId -or -not $JwtSecret -or -not $DbPassword) {
     Write-ColorOutput "ERRO: Variaveis obrigatorias faltando no .env" "Red"
-    Write-ColorOutput "   Necessario: GOOGLE_CLIENT_ID, JWT_SECRET, MYSQL_PASSWORD" "Red"
+    Write-ColorOutput "   Necessario: GOOGLE_CLIENT_ID, JWT_SECRET, PG_PASSWORD (ou SPRING_DATASOURCE_PASSWORD)" "Red"
     exit 1
 }
 Write-Host "   Variaveis carregadas"
@@ -149,7 +156,7 @@ Write-ColorOutput "[7/9] Configurando permissoes IAM..." "Yellow"
 $ProjectNumber = gcloud projects describe $ProjectId --format="value(projectNumber)" 2>$null
 $CloudRunSA = "${ProjectNumber}-compute@developer.gserviceaccount.com"
 
-gcloud projects add-iam-policy-binding experimenta-ai-soneca-balcao --member="serviceAccount:${CloudRunSA}" --role="roles/cloudsql.client" --quiet 2>$null
+# Permissoes para secrets (Cloud SQL nao e mais usado)
 @("db-password", "jwt-secret", "google-client-secret", "google-client-id") | ForEach-Object {
     gcloud secrets add-iam-policy-binding $_ --member="serviceAccount:${CloudRunSA}" --role="roles/secretmanager.secretAccessor" --project=$ProjectId --quiet 2>$null
 }
@@ -188,7 +195,7 @@ Write-ColorOutput "   Push concluido!" "Green"
 # Deploy no Cloud Run
 Write-ColorOutput "[DEPLOY] Fazendo deploy no Cloud Run..." "Blue"
 
-$DbUrl = "jdbc:mysql:///${DbName}?cloudSqlInstance=${CloudSqlConnection}&socketFactory=com.google.cloud.sql.mysql.SocketFactory&useSSL=false&serverTimezone=America/Sao_Paulo"
+$DbUrl = "jdbc:postgresql://${DbHost}:${DbPort}/${DbName}"
 $envVarsStr = "SPRING_DATASOURCE_URL=$DbUrl,SPRING_DATASOURCE_USERNAME=$DbUsername,JWT_EXPIRATION=86400000,SPRING_PROFILES_ACTIVE=prod,GOOGLE_CLIENT_ID=$GoogleClientId"
 $secretsStr = "SPRING_DATASOURCE_PASSWORD=db-password:latest,JWT_SECRET=jwt-secret:latest,GOOGLE_CLIENT_SECRET=google-client-secret:latest"
 
@@ -204,7 +211,6 @@ gcloud run deploy planning-poker `
     --max-instances 2 `
     --min-instances 0 `
     --port 8080 `
-    --add-cloudsql-instances $CloudSqlConnection `
     --set-secrets $secretsStr `
     --set-env-vars $envVarsStr `
     --cpu-throttling `
@@ -231,6 +237,6 @@ Write-Host ""
 Write-ColorOutput "Configuracoes:" "Yellow"
 Write-ColorOutput "   Projeto: $ProjectId" "White"
 Write-ColorOutput "   Regiao: $Region" "White"
-Write-ColorOutput "   Cloud SQL: $CloudSqlConnection" "White"
+Write-ColorOutput "   Database Host: $DbHost" "White"
 Write-ColorOutput "   Banco: $DbName" "White"
 Write-ColorOutput "   Usuario: $DbUsername" "White"

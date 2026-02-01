@@ -38,3 +38,6 @@ Thumbs.db
 *.jar
 *.war
 *.class
+
+# Artefatos locais (não fazem parte do código-fonte)
+local/

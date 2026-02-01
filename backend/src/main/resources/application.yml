@@ -11,12 +11,12 @@ spring:
     virtual:
       enabled: true
 
-  # MySQL Database
+  # PostgreSQL Database (UOL Host)
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/planningpoker?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Sao_Paulo}
-    username: ${SPRING_DATASOURCE_USERNAME:planningpoker}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgresql.uhserver.com:5432/star_wars_app}
+    username: ${SPRING_DATASOURCE_USERNAME:wmakeouthill}
     password: ${SPRING_DATASOURCE_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: org.postgresql.Driver
 
   # JPA - ddl-auto desabilitado pois usamos Liquibase
   jpa:
@@ -26,7 +26,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         # Usar nomes físicos exatos (sem conversão para minúsculas)
         physical_naming_strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
 
