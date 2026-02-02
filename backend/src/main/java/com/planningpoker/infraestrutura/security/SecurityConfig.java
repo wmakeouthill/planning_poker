@@ -6,7 +6,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,43 +32,45 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
-                                .csrf(AbstractHttpConfigurer::disable)
-                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                .sessionManagement(session -> session
-                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                                .authorizeHttpRequests(auth -> auth
-                                                // Recursos estáticos e frontend Angular (PÚBLICO - sem autenticação)
-                                                .requestMatchers("/", "/index.html", "/favicon.ico", "/*.js", "/*.css",
-                                                                "/*.ico", "/*.png",
-                                                                "/*.jpg", "/*.svg", "/*.woff", "/*.woff2", "/*.ttf",
-                                                                "/*.eot")
-                                                .permitAll()
-                                                .requestMatchers("/assets/**").permitAll()
+                                .csrf().disable()
+                                .cors().configurationSource(corsConfigurationSource())
+                                .and()
+                                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                                .and()
+                                .authorizeRequests()
+                                // Recursos estáticos e frontend Angular (PÚBLICO - sem autenticação)
+                                .antMatchers("/", "/index.html", "/favicon.ico", "/*.js", "/*.css",
+                                                "/*.ico", "/*.png",
+                                                "/*.jpg", "/*.svg", "/*.woff", "/*.woff2", "/*.ttf",
+                                                "/*.eot")
+                                .permitAll()
+                                .antMatchers("/assets/**").permitAll()
 
-                                                // Rotas do Angular Router (SPA) - Servem index.html
-                                                .requestMatchers("/boards", "/boards/**", "/poker-room/**", "/login",
-                                                                "/register", "/join/**",
-                                                                "/auth/**")
-                                                .permitAll()
+                                // Rotas do Angular Router (SPA) - Servem index.html
+                                .antMatchers("/boards", "/boards/**", "/poker-room/**", "/login",
+                                                "/register", "/join/**",
+                                                "/auth/**")
+                                .permitAll()
 
-                                                // Rota de fallback para erros
-                                                .requestMatchers("/error").permitAll()
+                                // Rota de fallback para erros
+                                .antMatchers("/error").permitAll()
 
-                                                // Endpoints públicos de API
-                                                .requestMatchers("/api/v1/auth/**").permitAll()
-                                                // Endpoint de animação (bolinhas/emojis) - permitir POST explicitamente
-                                                // Usar * para um único segmento (ID da sessão) - ** não pode ter nada depois
-                                                .requestMatchers(HttpMethod.POST, "/api/v1/poker/sessions/*/animation").permitAll()
-                                                .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html")
-                                                .permitAll()
-                                                .requestMatchers("/h2-console/**").permitAll()
-                                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                // Endpoints públicos de API
+                                .antMatchers("/api/v1/auth/**").permitAll()
+                                // Endpoint de animação (bolinhas/emojis) - permitir POST explicitamente
+                                // Usar * para um único segmento (ID da sessão) - ** não pode ter nada depois
+                                .antMatchers(HttpMethod.POST, "/api/v1/poker/sessions/*/animation").permitAll()
+                                .antMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html", "/v3/api-docs/**")
+                                .permitAll()
+                                .antMatchers("/h2-console/**").permitAll()
+                                .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                                                // WebSocket endpoint - permitir para handshake inicial
-                                                .requestMatchers("/ws/**").permitAll()
+                                // WebSocket endpoint - permitir para handshake inicial
+                                .antMatchers("/ws/**").permitAll()
 
-                                                // Demais endpoints requerem autenticação
-                                                .anyRequest().authenticated())
+                                // Demais endpoints requerem autenticação
+                                .anyRequest().authenticated()
+                                .and()
                                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();

@@ -2,7 +2,7 @@ package com.planningpoker.dominio.dto;
 
 import com.planningpoker.dominio.enums.SessionMode;
 
-import jakarta.validation.constraints.NotBlank;
+import javax.validation.constraints.NotBlank;
 
 /**
  * DTO para criar uma nova sessão de poker.

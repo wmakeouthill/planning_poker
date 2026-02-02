@@ -1,6 +1,6 @@
 package com.planningpoker.infraestrutura.config;
 
-import jakarta.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequest;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -47,8 +47,8 @@ public class SpaFallbackConfig implements ErrorController {
     @RequestMapping(value = "/error", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public ResponseEntity<Map<String, Object>> handleErrorJson(HttpServletRequest request) {
-        String path = (String) request.getAttribute("jakarta.servlet.error.request_uri");
-        Integer statusCode = (Integer) request.getAttribute("jakarta.servlet.error.status_code");
+        String path = (String) request.getAttribute("javax.servlet.error.request_uri");
+        Integer statusCode = (Integer) request.getAttribute("javax.servlet.error.status_code");
 
         if (statusCode == null) {
             statusCode = HttpStatus.INTERNAL_SERVER_ERROR.value();
@@ -67,11 +67,11 @@ public class SpaFallbackConfig implements ErrorController {
      */
     @RequestMapping(value = "/error", produces = MediaType.TEXT_HTML_VALUE)
     public ModelAndView handleErrorHtml(HttpServletRequest request) {
-        String path = (String) request.getAttribute("jakarta.servlet.error.request_uri");
+        String path = (String) request.getAttribute("javax.servlet.error.request_uri");
 
         // Se for arquivo estático (contém ponto no nome), deixa erro padrão
         if (path != null && path.matches(".*\\.[a-zA-Z0-9]+$")) {
-            Integer statusCode = (Integer) request.getAttribute("jakarta.servlet.error.status_code");
+            Integer statusCode = (Integer) request.getAttribute("javax.servlet.error.status_code");
             if (statusCode == null) {
                 statusCode = HttpStatus.NOT_FOUND.value();
             }

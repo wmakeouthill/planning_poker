@@ -3,7 +3,7 @@ package com.planningpoker.dominio.entidade;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.planningpoker.dominio.enums.SessionMode;
 import com.planningpoker.dominio.enums.SessionStatus;
-import jakarta.persistence.*;
+import javax.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
